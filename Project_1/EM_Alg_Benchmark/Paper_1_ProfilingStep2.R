@@ -1,6 +1,6 @@
 library(lineprof)
 
-source("~/timetest.R")
+source("~/source_EMAlgorithm_code.R")
 
 profile <- lineprof(OverallAGAlg(dat$X, dat$Y, Bres, m_seq = 3, tuningpA = 0))
 
