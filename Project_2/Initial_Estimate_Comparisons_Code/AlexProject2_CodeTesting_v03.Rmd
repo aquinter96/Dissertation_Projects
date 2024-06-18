@@ -1,0 +1,184 @@
+---
+title: "Alex Project2 Code Testing"
+author: "Xianming Tan"
+date: "2024-06-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+To understand Alex's code for project 2. 
+
+See https://github.com/aquinter96/Dissertation_Projects/tree/main/Project_2/Initial_Estimate_Comparisons_Code.  
+
+We first work on `Truth_Inits.R`. 
+
+**Completed**
+
+- wrap into several functions
+  - model parameters setup ... 
+    - `Model_Meta_Param.R` (dimensions)
+    - `Model_Matrix_Param.R` (matrices like A1/A2/...)
+  - data generation
+    - `Data_Generation.R` (a function)
+  - estimation 
+    - `_EMAlgXAdLassoCV_00.R`
+    - `_EMAlgYAdLassoCV_00.R`
+  - testing data and results 
+    - `TestData.RData`
+  - to re-organize: `_EMAlgYAdLassoCV_00.R` 
+    - See `EMAlgYAdLassoCV_01.R`
+    - Main function `EMAlgYAdLasso()`
+    - The E-step part: EMAlgYAdLasso_EStep() 
+    - The M-step part: EMAlgYAdLasso_MStep()
+
+**To dos**
+
+  - estimation functions are too long, will divide it into multiple parts 
+    - `_EMAlgXAdLassoCV_00.R` (X-part ... )
+
+## Setup 
+
+### Load libraries
+
+```{r, echo=TRUE}
+library(MASS)
+library(pracma)
+library(psych)
+library(r.jive)
+```
+
+### Random seed 
+
+```{r, echo=TRUE}
+## args <- commandArgs(TRUE)
+# datset <- 1 ## as.numeric(args[1])
+set.seed(12543)
+```
+
+### To initialize parameters
+
+The model for Paper 2 is described in overleaf and in `Paper2 overview.md` (obsidian note)
+
+In the below code, we setup the parameters for the model
+
+**Some comments**
+
+- We used `rnorm()` to generate elements for A1/A2/B1/B2/Phi etc 
+- This is not ideal, especially for the residual covariance part, because this will create some very difficult scenario in factor analysis. 
+- For residual covariance, it's better to set nearly identical values for the elements. 
+- This, however, is easy to fix. 
+- We move the following part to 2 separate R files.
+  - Model_Meta_Param.R (for )
+  - Model_Matrix_Param.R (For A1/A2/B1/B2/...)
+    - For this part, we may replace `rnorm` by `runif`
+
+```{r, echo=TRUE}
+code_dir <- "C:/Users/tanxi/Downloads/Dissertation_Projects-main/Project_2/"
+source(file = paste0(code_dir, "Model_Meta_Param.R") )
+source(file = paste0(code_dir, "Model_Matrix_Param.R") )
+```
+
+### To generate simulated data 
+
+- Sample size: $n = 1000$.
+- In this part, we generate $X,Y$
+- We wrap this part to a R function `Data_Generation` and saved in  file `Data_Generation.R`
+
+
+```{r, echo=TRUE}
+source(file = paste0(code_dir, "Data_Generation.R") )
+
+set.seed(123456)
+MyData <- Data_Generation(n = 1000, Model_Params=Model_Params)
+```
+
+### True values of G1-G4, for intermediate checking ... 
+
+```{r, echo=TRUE}
+G1t <- Model_Params$Gamma1%*%Model_Params$Theta + Model_Params$Delta1%*%Model_Params$Pi1
+G2t <- Model_Params$Gamma2%*%Model_Params$Theta + Model_Params$Delta2%*%Model_Params$Pi2
+G3t <- Model_Params$Gamma1%*%Model_Params$Psi + Model_Params$Delta1%*%Model_Params$Omega1
+G4t <- Model_Params$Gamma2%*%Model_Params$Psi + Model_Params$Delta2%*%Model_Params$Omega2
+Gt <- rbind(cbind(G1t, G3t), cbind(G2t, G4t))
+
+D <- cov(cbind(t( MyData$X1), t(MyData$X2)))
+```
+
+### To get initial values on A/B matrices for the X part ... 
+
+- In this version, we used the true parameter values as the initial values for EM algorithm
+
+## EM algorithms  
+
+These parameters are:  $A_1, A_2,  B_1, B_2, \Phi_R, \Phi_{S1}, \Phi_{S2}$
+
+The following code chunk defines a function `EMAlgXAdLassoCV` to estimate these parameters given data $X$ and initial parameters. 
+
+We first move function `EMAlgXAdLassoCV` to R file "_EMAlgXAdLassoCV_00.R" (this will not replaced by other files not starting with "_"). 
+
+
+### To test the EM algorithm for the X part . 
+
+```{r, echo=TRUE}
+source(file = paste0(code_dir, "_EMAlgXAdLassoCV_00.R") )
+```
+
+To do:  to re-organize the EM algorithm for the X-part.  
+
+```{r, echo=TRUE}
+time0 <- proc.time()
+############################################################################################################################################## 
+## This test fix tuning parameter at 0. This means, this compuation is really intensive and slow (8 minutes for one X data). This is weird. 
+############################################################################################################################################## 
+test <- EMAlgXAdLassoCV(Xpanel = list(t(MyData$X1), t(MyData$X2)), x_joint =  meta_param$m, x_indiv = c(meta_param$u1, meta_param$u2), 
+                        Ainits = list(Model_Params$A1, Model_Params$A2), Binits = list(Model_Params$B1, Model_Params$B2), 
+                        vcovinits = list(Model_Params$PhiR, Model_Params$PhiS1, Model_Params$PhiS2, Model_Params$Phi11, Model_Params$Phi12), 
+                        tuningpA = 0, tuningpB = 0,
+                        weightsA = list(Model_Params$A1, Model_Params$A2), weightsB = list(Model_Params$B1, Model_Params$B2)  )
+time1 <- proc.time()
+timeDiff <- time1 - time0 ## 8 minutes for one data set (X part only)  ...; 150s (2.5 minutes)  
+
+timeDiff 
+```
+
+### To test the EM step for the Y part
+
+- The initials from the ADAM max sometimes not good, and hence EM did not improve much ...  
+- I think that we used the true parameter values as the initial value for EM algorithm, right?
+
+```{r, echo=TRUE}
+# source(file = paste0(code_dir, "_EMAlgYAdLassoCV_00.R") )
+source(file = paste0(code_dir, "EMAlgYAdLassoCV_01.R"))
+```
+
+- The Y-part is re-organized into several functions ... 
+
+
+```{r, echo=TRUE}
+time0 <- proc.time()
+## fixed tuningpGamma,  tuningpDelta
+## using true A1/A2/B1/B2 as initials ... 
+## Example:  
+myEMRes <-       EMAlgYAdLasso(Data = MyData,  
+                              initial_Model_Param = Model_Params, 
+                              tuningpGamma = 0, 
+                              tuningpDelta = 0, 
+                              weightsGamma = list(Model_Params$Gamma1, Model_Params$Gamma2), 
+                              weightsDelta = list(Model_Params$Delta1, Model_Params$Delta2) )
+
+time1 <- proc.time()
+timeDiff <- time1 - time0    
+
+timeDiff
+
+plot(myEMRes$log.Like, main = "Change in Log-likelihood", xlab = "Iterations", ylab = "log-likelihood")
+
+plot(myEMRes$diffList, main = "Change in max abs diff in parameters", xlab = "Iterations", ylab = "max-abs-diff")
+
+# save(test, test2, meta_param, Model_Params, MyData, file=paste0(code_dir,  "TestData.RData"))
+``` 
