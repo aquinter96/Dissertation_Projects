@@ -4,7 +4,7 @@ EMAlgXAdLassoCV <- function(Xpanel = list(), x_joint, x_indiv = c(), Ainits = li
                             tuningpA = seq(5.1,5.5,0.1), tuningpB = seq(5.1,5.5,0.1), weightsA = list(), weightsB = list()){
   alg.start <- Sys.time()
   
-  #define initial values for intercept vector B0 and coefficient matrix B
+  #define initial values for A1, A2, B1, B2, PhiR, PhiS1, PhiS2, Phi11, and Phi12
   niter <- 0
   n <- nrow(Xpanel[[1]])
   q1 <- ncol(Xpanel[[1]])
@@ -60,8 +60,10 @@ EMAlgXAdLassoCV <- function(Xpanel = list(), x_joint, x_indiv = c(), Ainits = li
     Phi11 <- Phi11new
     Phi12 <- Phi12new
     
-    ## Use CV to calculate B, here CV is used to find optimal tuning parameter in the LASSO part. 
-    #for the first iteration of the algorithm ONLY, use CV to calculate the optimal tuning parameter for B
+    ## Here grid search is used to find optimal tuning parameters for A1/A2 and B1/B2 in the LASSO part. 
+    #for the first iteration of the algorithm ONLY, use grid search to calculate the optimal tuning parameter combination
+    #for B and A
+    
     if(niter == 0){
       
       epsilonijA1 <- 0 #initialize coordinate descent starting values
@@ -141,8 +143,8 @@ EMAlgXAdLassoCV <- function(Xpanel = list(), x_joint, x_indiv = c(), Ainits = li
           maxit <- 0
           
           ##########################################
-          ## This while loop is for what?
-          ## To update A1/A2/B1/B2/PhiR/PhiS1/PhiS2/Phi11/Phi12
+          ## This while loop is for calculating estimates of A1/A2/B1/B2/PhiR/PhiS1/PhiS2/Phi11/Phi12
+          ## for the current tuning parameter values a (for A) and b (for B)
           ##########################################
           while(((norm(A1 - A1CV, type = "F") > 0.001) | (norm(A2 - A2CV, type = "F") > 0.001) | (norm(B1 - B1CV, type = "F") > 0.001) | (norm(B2 - B2CV, type = "F") > 0.001) | (norm(PhiR - PhiRCV, type = "F") > 0.001) | (norm(PhiS1 - PhiS1CV, type = "F") > 0.001) | (norm(PhiS2 - PhiS2CV, type = "F") > 0.001) | (norm(Phi11 - Phi11CV, type = "F") > 0.001) | (norm(Phi12 - Phi12CV, type = "F") > 0.001)) & (maxit <= 10000)){
             
@@ -182,8 +184,7 @@ EMAlgXAdLassoCV <- function(Xpanel = list(), x_joint, x_indiv = c(), Ainits = li
             B2update <- matrix(0, nrow = q2, ncol = u2)
             
             ##########################################
-            ## What does this while loop for?
-            ## To update A1/A2/B1/B2/ 
+            ## This loop updates A1/A2/B1/B2 until convergence using coordinate descent for the current M-step
             ##########################################
             while((norm(A1update - A1CV, type = "F") > 0.005) | (norm(A2update - A2CV, type = "F") > 0.005) | (norm(B1update - B1CV) > 0.005) | (norm(B2update - B2CV) > 0.005)){
               
@@ -376,7 +377,7 @@ EMAlgXAdLassoCV <- function(Xpanel = list(), x_joint, x_indiv = c(), Ainits = li
             }
             
             #################################################################################
-            ## back to the while loop to update A1/A2/B1/B2/PhiR/PhiS1/PhiS2/Phi11/Phi12
+            ## back to the while loop to update PhiR/PhiS1/PhiS2/Phi11/Phi12
             #################################################################################
             
             PhiRCV <- diag(diag(condvarR + 1/n*ER%*%t(ER)))
