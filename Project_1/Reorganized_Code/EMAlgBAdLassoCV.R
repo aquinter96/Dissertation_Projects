@@ -172,7 +172,7 @@ EMAlgBAdLassoCV <- function(X, xk_sig, Binit, Phi1init, tuningpB = seq(5.1,5.5,0
       B <- Bstart
       Phi1 <- Phi1start
       
-      #once CV MSE has been calculated for every tuning parameter, extract tuning parameter
+      #once BIC has been calculated for every tuning parameter, extract tuning parameter
       #that corresponds to the smallest CV SE (i.e. the optimal tuning parameter)
       cv.end <- Sys.time()
       cv.time <- cv.end - cv.start
