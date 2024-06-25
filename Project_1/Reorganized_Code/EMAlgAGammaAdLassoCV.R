@@ -29,21 +29,7 @@ EMAlgAGammaAdLassoCV <- function(X, Y, xk_sig, k_sig, B, B0, Phi1, Ainit, Ginit,
   Phi2new <- Phi2init
   Phi3 <- matrix(0, nrow = k_sig, ncol = k_sig)
   Phi3new <- Phi3init
-  
-  ############################################################################ 
-  ## assume sparsity for A, and thus, consider LASSO penalty  
-  ## Here, we define a lasso function: a soft-thresholding function
-  ############################################################################ 
-  lasso <- function(x,y){ #initialize soft-thresholding function
-    result <- NULL
-    if(abs(x) <= y){
-      result <- 0
-    } else{
-      result <- x - y*sign(x)
-    }
-    return(result)
-  }
-  
+
   ############################################################################ 
   ## The EM iterations: the while loop
   ############################################################################ 
@@ -108,84 +94,16 @@ EMAlgAGammaAdLassoCV <- function(X, Y, xk_sig, k_sig, B, B0, Phi1, Ainit, Ginit,
           Phi2 <- Phi2CV
           Phi3 <- Phi3CV
           
-          sigma21 <-  rbind( matrix( cbind( t(B), t(Gamma)%*% t(A)), nrow = xk_sig, ncol = q+p)    , matrix(cbind(Gamma%*%t(B),(Phi3 + Gamma%*%t(Gamma))%*%t(A)), nrow = k_sig, ncol = q+p) )  ## k_sig (m for Z)  xk_sig (s for W): Z = Gamma W + E
+          E_estimates <- Estep_Y(X, Y, A0, B0, A, B, Gamma, Phi1, Phi2, Phi3)
           
-          sigma11 <- matrix(cbind(rbind((Phi1 + tcrossprod(B)), A%*%Gamma%*%t(B)), rbind(B%*%t(A%*%Gamma),
-                                                                                         (Phi2 + A%*%(Phi3 + tcrossprod(Gamma))%*%t(A)))), nrow = q+p, ncol = q+p)
+          M_estimates <- Mstep_Y(X, Y, E_estimates$EW, E_estimates$EZ, E_estimates$condvarWZ, E_estimates$condvar, A0, A, Gamma, Phi2, Phi3, tuningpA[a], weights)
           
-          sigma22 <-   rbind( matrix( cbind( diag(xk_sig), t(Gamma) ), nrow = xk_sig, ncol = (k_sig + xk_sig)   )  ,matrix( cbind( Gamma  , Phi3 + Gamma%*%t(Gamma) ), nrow = k_sig, ncol = (k_sig + xk_sig)   ) ) ## (m +s) x (m +s )
+          A0CV <- M_estimates$A0
+          ACV <- M_estimates$A
+          GammaCV <- M_estimates$Gamma
+          Phi2CV <- M_estimates$Phi2
+          Phi3CV <- M_estimates$Phi3
           
-          inv11 <- Matrix::solve(sigma11)
-          condvarWZ <- sigma22 - sigma21%*%inv11%*%t(sigma21)  ##  (m +s) x (m +s)
-          condvar  <- condvarWZ[xk_sig+(1:k_sig), xk_sig+(1:k_sig) ]  ## m x m    
-          
-          EWZ <- sigma21%*%inv11%*%(rbind(t(X),t(Y))-matrix(rbind(B0,A0), nrow = q+p, ncol = n, byrow = F)) ## (m + s) x n
-          EW <-  matrix(EWZ[1:xk_sig,], nrow = xk_sig)   ## q x n
-          EZ <-  matrix(EWZ[xk_sig+(1:k_sig), ], nrow = k_sig)  ## p x n
-          
-          ##################################              
-          ## for each element in the first part of A: mxm  
-          ## S is p*m
-          ##################################              
-          for(i in 1:k_sig){
-            for(j in 1:k_sig){
-              deltaijA <- 0
-              thetaijA <- 0
-              omegaijA <- 0
-              #calculate coordinate descent updates for the first sxs submatrix of B, while ensuring that said sxs matrix is lower triangular
-              if(j < i){
-                deltaijA <- (tcrossprod(EZ) + n*condvar)[j,j]
-                thetaijA <- crossprod(EZ[j,],(Y[,i]-rep(A0CV[i,], n)))
-                omegaijA <- (tcrossprod(EZ) + n*condvar)[-j,j]%*%ACV[i,-j]
-                abar <- ((thetaijA-omegaijA))/(deltaijA)
-                if(weights[i,j] == 0){
-                  lambdaA <- (tuningpA[a]*Phi2CV[i,i])/deltaijA*(1/1e-5)
-                }
-                else{
-                  lambdaA <- (tuningpA[a]*Phi2CV[i,i])/deltaijA*(1/abs(weights[i,j]))
-                }
-                ACV[i,j] <- lasso(abar, lambdaA)
-              }
-            }
-          }
-          for(i in (k_sig+1):p){
-            for(j in 1:k_sig){
-              deltaijA <- 0
-              thetaijA <- 0
-              omegaijA <- 0
-              deltaijA <- (tcrossprod(EZ) + n*condvar)[j,j]
-              thetaijA <- crossprod(EZ[j,],(Y[,i]-rep(A0CV[i,], n)))
-              omegaijA <- (tcrossprod(EZ) + n*condvar)[-j,j]%*%ACV[i,-j]
-              abar <- ((thetaijA-omegaijA))/(deltaijA)
-              if(weights[i,j] == 0){
-                lambdaA <- (tuningpA[a]*Phi2CV[i,i])/deltaijA*(1/1e-5)
-              }
-              else{
-                lambdaA <- (tuningpA[a]*Phi2CV[i,i])/deltaijA*(1/abs(weights[i,j]))
-              }
-              ACV[i,j] <- lasso(abar, lambdaA)
-            }
-          }
-          
-          #################################################################################
-          ## back to the while loop to update A0/Gamma/Phi2/Phi3
-          #################################################################################
-          
-          A0CV <- (1/n)*as.matrix(colSums(Y - t(ACV%*%EZ)))
-          
-          Phi2CV <- (1/n)*diag(diag(t(Y)%*%Y - 2*t(Y)%*%matrix(A0, nrow = n, ncol = p, byrow = T) - 2*t(Y)%*%t(EZ)%*%t(ACV) + matrix(A0, nrow = p, ncol = n, byrow = F)%*%t(matrix(A0, nrow = p, ncol = n, byrow = F)) + 
-                                      2*matrix(A0, nrow = p, ncol = n, byrow = F)%*%t(EZ)%*%t(ACV) + n*ACV%*%condvar%*%t(ACV) + ACV%*%EZ%*%t(EZ)%*%t(ACV)))
-          
-          GammaCV <- as.matrix((n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),(1:xk_sig)] + EZ%*%t(EW))%*%solve(n*condvarWZ[(1:xk_sig),(1:xk_sig)] + EW%*%t(EW)))
-          
-          #Phi3 Update
-          if(k_sig == 1){
-            Phi3CV <- (1/n)*as.matrix(n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),((xk_sig+1):(xk_sig+k_sig))] + EZ%*%t(EZ) - 2*n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),(1:xk_sig)]%*%t(GammaCV) -
-                                        2*EZ%*%t(EW)%*%t(GammaCV) + n*GammaCV%*%condvarWZ[(1:xk_sig),(1:xk_sig)]%*%t(GammaCV) + GammaCV%*%EW%*%t(EW)%*%t(GammaCV))
-          }else{
-            Phi3CV <- (1/n)*as.matrix(diag(diag(n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),((xk_sig+1):(xk_sig+k_sig))] + EZ%*%t(EZ) - 2*n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),(1:xk_sig)]%*%t(GammaCV) -
-                                                  2*EZ%*%t(EW)%*%t(GammaCV) + n*GammaCV%*%condvarWZ[(1:xk_sig),(1:xk_sig)]%*%t(GammaCV) + GammaCV%*%EW%*%t(EW)%*%t(GammaCV))))
-          }
           maxit <- maxit + 1
         }
         
@@ -235,83 +153,16 @@ EMAlgAGammaAdLassoCV <- function(X, Y, xk_sig, k_sig, B, B0, Phi1, Ainit, Ginit,
       cv.time <- cv.end - cv.start
     }
     
-    sigma21 <-  rbind( matrix( cbind( t(B), t(Gamma)%*% t(A)), nrow = xk_sig, ncol = q+p)    , matrix(cbind(Gamma%*%t(B),(Phi3 + Gamma%*%t(Gamma))%*%t(A)), nrow = k_sig, ncol = q+p) )  ## k_sig (m for Z)  xk_sig (s for W): Z = Gamma W + E
+    E_estimates <- Estep_Y(X, Y, A0, B0, A, B, Gamma, Phi1, Phi2, Phi3)
     
-    sigma11 <- matrix(cbind(rbind((Phi1 + tcrossprod(B)), A%*%Gamma%*%t(B)), rbind(B%*%t(A%*%Gamma),
-                                                                                   (Phi2 + A%*%(Phi3 + tcrossprod(Gamma))%*%t(A)))), nrow = q+p, ncol = q+p)
+    M_estimates <- Mstep_Y(X, Y, E_estimates$EW, E_estimates$EZ, E_estimates$condvarWZ, E_estimates$condvar, A0, A, Gamma, Phi2, Phi3, tuningpAhat, weights)
     
-    sigma22 <-   rbind( matrix( cbind( diag(xk_sig), t(Gamma) ), nrow = xk_sig, ncol = (k_sig + xk_sig)   )  ,matrix( cbind( Gamma  , Phi3 + Gamma%*%t(Gamma) ), nrow = k_sig, ncol = (k_sig + xk_sig)   ) ) ## (m +s) x (m +s )
+    A0new <- M_estimates$A0
+    Anew <- M_estimates$A
+    Gammanew <- M_estimates$Gamma
+    Phi2new <- M_estimates$Phi2
+    Phi3new <- M_estimates$Phi3
     
-    inv11 <- Matrix::solve(sigma11)
-    condvarWZ <- sigma22 - sigma21%*%inv11%*%t(sigma21)  ##  (m +s) x (m +s)
-    condvar  <- condvarWZ[xk_sig+(1:k_sig), xk_sig+(1:k_sig) ]  ## m x m    
-    EZ <-  matrix(EWZ[xk_sig+(1:k_sig), ], nrow = k_sig)  ## p x n
-    EW <-  matrix(EWZ[1:xk_sig,], nrow = xk_sig)   ## q x n
-    
-    #now that the optimal tuning parameter has been chosen, run the EM algorithm as normal, using the optimal tuning parameter for all subsequent iterations
-    
-    for(i in 1:k_sig){
-      for(j in 1:k_sig){
-        deltaijA <- 0
-        thetaijA <- 0
-        omegaijA <- 0
-        if(j < i){
-          deltaijA <- (tcrossprod(EZ) + n*condvar)[j,j]
-          thetaijA <- crossprod(EZ[j,],(Y[,i]-rep(A0[i,], n)))
-          omegaijA <- (tcrossprod(EZ) + n*condvar)[-j,j]%*%Anew[i,-j]
-          abar <- ((thetaijA-omegaijA))/(deltaijA)
-          if(weights[i,j] == 0){
-            lambdaA <- (tuningpAhat*Phi2[i,i])/deltaijA*(1/1e-5)
-          }
-          else{
-            lambdaA <- (tuningpAhat*Phi2[i,i])/deltaijA*(1/abs(weights[i,j]))
-          }
-          Anew[i,j] <- lasso(abar, lambdaA)
-        }
-      }
-    }
-    for(i in (k_sig+1):p){
-      for(j in 1:k_sig){
-        deltaijA <- 0
-        thetaijA <- 0
-        omegaijA <- 0
-        deltaijA <- (tcrossprod(EZ) + n*condvar)[j,j]
-        thetaijA <- crossprod(EZ[j,],(Y[,i]-rep(A0[i,], n)))
-        omegaijA <- (tcrossprod(EZ) + n*condvar)[-j,j]%*%Anew[i,-j]
-        abar <- ((thetaijA-omegaijA))/(deltaijA)
-        if(weights[i,j] == 0){
-          lambdaA <- (tuningpAhat*Phi2[i,i])/deltaijA*(1/1e-5)
-        }
-        else{
-          lambdaA <- (tuningpAhat*Phi2[i,i])/deltaijA*(1/abs(weights[i,j]))
-        }
-        Anew[i,j] <- lasso(abar, lambdaA)
-      }
-    }
-    
-    #A0 Update
-    A0new <- (1/n)*as.matrix(colSums(Y - t(Anew%*%EZ)))
-    
-    #Phi2 Update
-    Phi2new <- (1/n)*diag(diag(t(Y)%*%Y - 2*t(Y)%*%matrix(A0new, nrow = n, ncol = p, byrow = T) - 2*t(Y)%*%t(EZ)%*%t(Anew) + matrix(A0new, nrow = p, ncol = n, byrow = F)%*%t(matrix(A0new, nrow = p, ncol = n, byrow = F)) + 
-                                 2*matrix(A0new, nrow = p, ncol = n, byrow = F)%*%t(EZ)%*%t(Anew) + n*Anew%*%condvar%*%t(Anew) + Anew%*%EZ%*%t(EZ)%*%t(Anew)))
-    
-    #conditional covariance matrix of W and Z
-    condvarWZ <- matrix(cbind(rbind(diag(xk_sig), Gamma), rbind(t(Gamma),(Phi3 + Gamma%*%t(Gamma)))), nrow = xk_sig+k_sig, ncol = xk_sig+k_sig) -
-      matrix(cbind(rbind(t(B), Gamma%*%t(B)), rbind(t(Gamma)%*%t(Anew),(Phi3 + Gamma%*%t(Gamma))%*%t(Anew))), nrow = xk_sig+k_sig, ncol = q+p)%*%solve(matrix(cbind(rbind((Phi1 + tcrossprod(B)), Anew%*%Gamma%*%t(B)), rbind(B%*%t(Anew%*%Gamma),
-                                                                                                                                                                                                                              (Phi2new + Anew%*%(Phi3 + tcrossprod(Gamma))%*%t(Anew)))), nrow = q+p, ncol = q+p))%*%t(matrix(cbind(rbind(t(B), Gamma%*%t(B)), rbind(t(Gamma)%*%t(Anew),(Phi3 + Gamma%*%t(Gamma))%*%t(Anew))), nrow = xk_sig+k_sig, ncol = q+p))
-    
-    #Gamma Update
-    Gammanew <- as.matrix((n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),(1:xk_sig)] + EZ%*%t(EW))%*%solve(n*condvarWZ[(1:xk_sig),(1:xk_sig)] + EW%*%t(EW)))
-    
-    #Phi3 Update
-    if(k_sig == 1){
-      Phi3new <- as.matrix((1/n)*(n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),((xk_sig+1):(xk_sig+k_sig))] + EZ%*%t(EZ) - 2*n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),(1:xk_sig)]%*%t(Gammanew) -
-                                    2*EZ%*%t(EW)%*%t(Gammanew) + n*Gammanew%*%condvarWZ[(1:xk_sig),(1:xk_sig)]%*%t(Gammanew) + Gammanew%*%EW%*%t(EW)%*%t(Gammanew)))
-    }else{
-      Phi3new <- as.matrix((1/n)*diag(diag((n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),((xk_sig+1):(xk_sig+k_sig))] + EZ%*%t(EZ) - 2*n*condvarWZ[((xk_sig+1):(xk_sig+k_sig)),(1:xk_sig)]%*%t(Gammanew) -
-                                              2*EZ%*%t(EW)%*%t(Gammanew) + n*Gammanew%*%condvarWZ[(1:xk_sig),(1:xk_sig)]%*%t(Gammanew) + Gammanew%*%EW%*%t(EW)%*%t(Gammanew)))))
-    }
     niter <- niter + 1
   }
   
@@ -332,6 +183,11 @@ EMAlgAGammaAdLassoCV <- function(X, Y, xk_sig, k_sig, B, B0, Phi1, Ainit, Ginit,
   sigma22 <-   rbind( matrix( cbind( diag(xk_sig), t(Gamma) ), nrow = xk_sig, ncol = (k_sig + xk_sig)   )  ,matrix( cbind( Gamma  , Phi3 + Gamma%*%t(Gamma) ), nrow = k_sig, ncol = (k_sig + xk_sig)   ) ) ## (m +s) x (m +s )
   
   inv11 <- Matrix::solve(sigma11)
+  
+  EWZ <- sigma21%*%inv11%*%(rbind(t(X),t(Y))-matrix(rbind(B0,A0), nrow = q+p, ncol = n, byrow = F)) ## (m + s) x n
+  EW <-  matrix(EWZ[1:xk_sig,], nrow = xk_sig)   ## q x n
+  EZ <-  matrix(EWZ[xk_sig+(1:k_sig), ], nrow = k_sig)  ## p x n
+  
   log.lik <- -(n/2)*(sum(diag(inv11%*%(cov(cbind(X,Y))+(colMeans(cbind(X,Y)) - colMeans(cbind(X,Y)))%*%t(colMeans(cbind(X,Y)) - colMeans(cbind(X,Y)))))) + (q+p)*log((2*pi))+log(det(sigma11)))
   
   BICopt <- log(n)*(sum(A != 0) - k_sig) - 2*log.lik

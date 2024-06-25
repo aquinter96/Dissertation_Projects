@@ -25,7 +25,10 @@ MyData <- Data_Generation(n = 50, Model_Params=Model_Params)
 
 ### To get estimates for the X part ...
 
+source(file = paste0(code_dir, "Lasso.R") )
 source(file = paste0(code_dir, "B_inits.R") )
+source(file = paste0(code_dir, "Estep_X.R") )
+source(file = paste0(code_dir, "Mstep_X.R") )
 source(file = paste0(code_dir, "EMAlgBAdLassoCV.R") )
 source(file = paste0(code_dir, "OverallBAlg.R") )
 
@@ -35,9 +38,11 @@ Best <- OverallBAlg(MyData$X)
 ### To get estimates for the Y part ...
 
 source(file = paste0(code_dir, "initvalcalc.R") )
+source(file = paste0(code_dir, "Estep_Y.R") )
+source(file = paste0(code_dir, "Mstep_Y.R") )
 source(file = paste0(code_dir, "EMAlgAGammaAdLassoCV.R") )
 source(file = paste0(code_dir, "OverallAGAlg.R") )
 
-Aest <- OverallAGAlg(MyData$X, MyData$Y, Best)
+Aest <- OverallAGAlg(MyData$X, MyData$Y, Best, tuningpA = 1:10)
 
 ## end of code

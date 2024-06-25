@@ -1,6 +1,6 @@
 ## EMAlgBAdLassoCV.R
 
-EMAlgBAdLassoCV <- function(X, xk_sig, Binit, Phi1init, tuningpB = seq(5.1,5.5,0.1), nfolds=10, weights){
+EMAlgBAdLassoCV <- function(Data, initial_Model_Params, tuningpB = seq(5.1,5.5,0.1), weights){
   alg.start <- Sys.time()
   
   tuningpBinit <- tuningpB
@@ -15,21 +15,7 @@ EMAlgBAdLassoCV <- function(X, xk_sig, Binit, Phi1init, tuningpB = seq(5.1,5.5,0
   Bnew <- Binit
   Phi1 <- matrix(0, nrow = q, ncol = q)
   Phi1new <- Phi1init
-  
-  ############################################################################ 
-  ## assume sparsity for B, and thus, consider LASSO penalty  
-  ## Here, we define a lasso function: a soft-thresholding function
-  ############################################################################ 
-  lasso <- function(x,y){ #initialize soft-thresholding function
-    result <- NULL
-    if(abs(x) <= y){
-      result <- 0
-    } else{
-      result <- x - y*sign(x)
-    }
-    return(result)
-  }
-  
+
   ############################################################################ 
   ## The EM iterations: the while loop
   ############################################################################ 
@@ -84,62 +70,14 @@ EMAlgBAdLassoCV <- function(X, xk_sig, Binit, Phi1init, tuningpB = seq(5.1,5.5,0
           B <- BCV
           Phi1 <- Phi1CV
           
-          invmodcv <- Matrix::solve(Phi1 + tcrossprod(B))
-          condvar <- diag(xk_sig) - crossprod(B,invmodcv)%*%B
-          EW <- crossprod(B,invmodcv)%*%(t(X)-matrix(B0, nrow = q, ncol = n, byrow = F))
+          E_estimates <- Estep_X(X, B0, B, Phi1)
+
+          M_estimates <- Mstep_X(X, E_estimates$EW, E_estimates$condvar, B0, B, Phi1, tuningpB[a], weights)
           
-          ##################################              
-          ## for each element in the first part of B: sxs  
-          ## B is q*s
-          ##################################              
-          for(i in 1:xk_sig){
-            for(j in 1:xk_sig){
-              deltaijB <- 0
-              thetaijB <- 0
-              omegaijB <- 0
-              #calculate coordinate descent updates for the first sxs submatrix of B, while ensuring that said sxs matrix is lower triangular
-              if(j < i){
-                deltaijB <- (tcrossprod(EW) + n*condvar)[j,j]
-                thetaijB <- crossprod(EW[j,],(X[,i]-rep(B0CV[i,], n)))
-                omegaijB <- (tcrossprod(EW) + n*condvar)[-j,j]%*%BCV[i,-j]
-                bbar <- ((thetaijB-omegaijB))/(deltaijB)
-                if(weights[i,j] == 0){
-                  lambdaB <- (tuningpB[a]*Phi1CV[i,i])/deltaijB*(1/1e-5)
-                }
-                else{
-                  lambdaB <- (tuningpB[a]*Phi1CV[i,i])/deltaijB*(1/abs(weights[i,j]))
-                }
-                BCV[i,j] <- lasso(bbar, lambdaB)
-              }
-            }
-          }
-          #calculate coordinate descent updates for remaining (q-(s+1))xs submatrix of B
-          for(i in (xk_sig+1):q){
-            for(j in 1:xk_sig){
-              deltaijB <- 0
-              thetaijB <- 0
-              omegaijB <- 0
-              deltaijB <- (tcrossprod(EW) + n*condvar)[j,j]
-              thetaijB <- crossprod(EW[j,],(X[,i]-rep(B0CV[i,], n)))
-              omegaijB <- (tcrossprod(EW) + n*condvar)[-j,j]%*%BCV[i,-j]
-              bbar <- ((thetaijB-omegaijB))/(deltaijB)
-              if(weights[i,j] == 0){
-                lambdaB <- (tuningpB[a]*Phi1CV[i,i])/deltaijB*(1/1e-5)
-              }
-              else{
-                lambdaB <- (tuningpB[a]*Phi1CV[i,i])/deltaijB*(1/abs(weights[i,j]))
-              }
-              BCV[i,j] <- lasso(bbar, lambdaB)
-            }
-          }
+          B0CV <- M_estimates$B0
+          BCV <- M_estimates$B
+          PhiCV <- M_estimates$Phi1
           
-          #################################################################################
-          ## back to the while loop to update B0/Phi1
-          #################################################################################
-          
-          B0CV <- (1/n)*as.matrix(colSums(X - t(BCV%*%EW)))
-          Phi1CV <- (1/n)*diag(diag(t(X)%*%X - 2*t(X)%*%matrix(B0CV, nrow = n, ncol = q, byrow = T) - 2*t(X)%*%t(EW)%*%t(BCV) + matrix(B0CV, nrow = q, ncol = n, byrow = F)%*%t(matrix(B0CV, nrow = q, ncol = n, byrow = F)) + 
-                                      2*matrix(B0CV, nrow = q, ncol = n, byrow = F)%*%t(EW)%*%t(BCV) + n*BCV%*%condvar%*%t(BCV) + BCV%*%EW%*%t(EW)%*%t(BCV)))
           maxit <- maxit + 1
         }
         #once the coordinate descent algorithm has converged, use converged B estimate to calculate predicted values of test set
@@ -178,52 +116,14 @@ EMAlgBAdLassoCV <- function(X, xk_sig, Binit, Phi1init, tuningpB = seq(5.1,5.5,0
       cv.time <- cv.end - cv.start
     }
     
-    invmodv <- Matrix::solve(Phi1 + tcrossprod(B))
-    condvar <- diag(xk_sig) - t(B)%*%invmodv%*%B
     
-    EW <- crossprod(B,invmodv)%*%(t(X)-matrix(B0, nrow = q, ncol = n, byrow = F))
+    E_estimates <- Estep_X(X, B0, B, Phi1)
     
-    for(i in 1:xk_sig){
-      for(j in 1:xk_sig){
-        deltaijB <- 0
-        thetaijB <- 0
-        omegaijB <- 0
-        if(j < i){
-          deltaijB <- (tcrossprod(EW) + n*condvar)[j,j]
-          thetaijB <- crossprod(EW[j,],(X[,i]-rep(B0[i,], n)))
-          omegaijB <- (tcrossprod(EW) + n*condvar)[-j,j]%*%Bnew[i,-j]
-          bbar <- ((thetaijB-omegaijB))/(deltaijB)
-          if(weights[i,j] == 0){
-            lambdaB <- (tuningpBhat*Phi1[i,i])/deltaijB*(1/1e-5)
-          }
-          else{
-            lambdaB <- (tuningpBhat*Phi1[i,i])/deltaijB*(1/abs(weights[i,j]))
-          }
-          Bnew[i,j] <- lasso(bbar, lambdaB)
-        }
-      }
-    }
-    for(i in (xk_sig+1):q){
-      for(j in 1:xk_sig){
-        deltaijB <- 0
-        thetaijB <- 0
-        omegaijB <- 0
-        deltaijB <- (tcrossprod(EW) + n*condvar)[j,j]
-        thetaijB <- crossprod(EW[j,],(X[,i]-rep(B0[i,], n)))
-        omegaijB <- (tcrossprod(EW) + n*condvar)[-j,j]%*%Bnew[i,-j]
-        bbar <- ((thetaijB-omegaijB))/(deltaijB)
-        if(weights[i,j] == 0){
-          lambdaB <- (tuningpBhat*Phi1[i,i])/deltaijB*(1/1e-5)
-        }
-        else{
-          lambdaB <- (tuningpBhat*Phi1[i,i])/deltaijB*(1/abs(weights[i,j]))
-        }
-        Bnew[i,j] <- lasso(bbar, lambdaB)
-      }
-    }
-    B0new <- (1/n)*as.matrix(colSums(X - t(Bnew%*%EW)))
-    Phi1new <- (1/n)*diag(diag(t(X)%*%X - 2*t(X)%*%matrix(B0new, nrow = n, ncol = q, byrow = T) - 2*t(X)%*%t(EW)%*%t(Bnew) + matrix(B0new, nrow = q, ncol = n, byrow = F)%*%t(matrix(B0new, nrow = q, ncol = n, byrow = F)) +
-                                 2*matrix(B0new, nrow = q, ncol = n, byrow = F)%*%t(EW)%*%t(Bnew) + n*Bnew%*%condvar%*%t(Bnew) + Bnew%*%EW%*%t(EW)%*%t(Bnew)))
+    M_estimates <- Mstep_X(X, E_estimates$EW, E_estimates$condvar, B0, B, Phi1, tuningpBhat, weights)
+    
+    B0new <- M_estimates$B0
+    Bnew <- M_estimates$B
+    Phinew <- M_estimates$Phi1
     
     niter <- niter + 1
   }
