@@ -39,7 +39,7 @@ EMAlgYAdLasso_EStep <- function(Data = Data,  ## (X1/X2,Y1/Y2)
     q2 <-  ncol(MyPar$Phi12)
     
     p1 <-  ncol(MyPar$Phi21)
-    p2 <-   ncol(MyPar$Phi22)
+    p2 <- ncol(MyPar$Phi22)
     j <- ncol(MyPar$Phi3)
     z1 <- ncol(MyPar$Phi41)
     z2 <- ncol(MyPar$Phi42)      

@@ -1,6 +1,6 @@
 ## OverallAGAlg.R
 
-OverallAGAlg <- function(X, Y, Bobj,tuningpA = seq(0,15,0.1), m_seq = 1:4, nfolds=10){
+OverallAGAlg <- function(Data, Best, tuningpA = seq(0, 15, 0.1), m_seq = 1:4){
   
   #################################################################################
   ## create empty lists to store the optimal estimate of A (and corresponding estimates
@@ -9,13 +9,12 @@ OverallAGAlg <- function(X, Y, Bobj,tuningpA = seq(0,15,0.1), m_seq = 1:4, nfold
   ## calculated in OverallBAlg.R of B/B0/Phi1 for use in the estimation of A/A0/Gamma/Phi2/Phi3
   #################################################################################
   
-  Ainit <- NA
-  s <- Bobj$`optimal s`
-  B <- Bobj$Bopt$B
-  B0 <- Bobj$Bopt$B0
-  Phi1 <- Bobj$Bopt$Phi1
-  Alist <- replicate(length(m_seq),NA,simplify=F)
-  BIClist <- rep(0, length(m_seq))
+  Aestlist <- replicate(length(m_seq), NULL, simplify=F)
+  Aest <- NULL
+  A_final <- NULL
+  All_final <- list()
+  BIC_previous <- 0
+  BIC_opt <- rep(0, length(m_seq))
   
   #################################################################################
   ## for each # of latent factors in the grid search, determine the optimal estimate
@@ -23,26 +22,45 @@ OverallAGAlg <- function(X, Y, Bobj,tuningpA = seq(0,15,0.1), m_seq = 1:4, nfold
   #################################################################################
   
   for(i in 1:length(m_seq)){
+    for(j in 1:length(tuningpA)){
+      #################################################################################
+      ## for each # of latent factors in the grid search, determine the optimal estimate
+      ## of B/B0/Phi1, then save the corresponding estimates and BIC in the respective lists
+      #################################################################################
+      
+      Ainit <- A_inits(Data, Best, m_seq[i])
+      Aest <- EMAlgAGammaAdLassoCV(Data, Best, Ainit, tuningpA[j], weights = Ainit$A)
+      
+      if(j == 1 | Aest$BIC < BIC_previous){
+        Aestlist[[i]] <- Aest
+        BIC_previous <- Aestlist[[i]]$BIC
+      }
+      
+    }
     
-    #################################################################################
-    ## for each # of latent factors in the grid search, determine the optimal estimate
-    ## of B/B0/Phi1, then save the corresponding estimates and BIC in the respective lists
-    #################################################################################
+    BIC_opt[i] <- BIC_previous
     
-    inits <- initvalcalc(X, Y, B, s, m_seq[i], nrow(Y))
-    Aweight <- EMAlgAGammaAdLassoCV(X, Y, s, m_seq[i], B, B0, Phi1, inits$Ainit, inits$Ginit, diag(diag(inits$Phi2init)), inits$Phi3init, 0, weights = matrix(rep(0,ncol(Y)*m_seq[i]),ncol=m_seq[i]))
-    Alist[[i]] <- EMAlgAGammaAdLassoCV(X, Y, s, m_seq[i], B, B0, Phi1, inits$Ainit, inits$Ginit, diag(diag(inits$Phi2init)), inits$Phi3init, tuningpA, weights = Aweight$A)
-    BIClist[i] <- Alist[[i]]$BICopt
   }
-  
+  print(BIC_opt)
   #################################################################################
   ## extract the # of latent factors that had the lowest BIC and the corresponding
   ## model estimates
   #################################################################################
   
-  mopt <- m_seq[which(BIClist == min(BIClist))]
-  optA <- Alist[[which(BIClist == min(BIClist))]]
-  return(list("model results" = optA, "X" = X, "B" = B, "B0" = B0, "Phi1" = Phi1, "optimal s BIC" = s, "optimal m BIC" = mopt, "ABIC" = optA$BICopt, "lambdaA" = optA$`optimal lambda`, "BBIC" = Bobj$BIC, "lambdaB" = Bobj$lambda))
+  Aopt <- Aestlist[[which(BIC_opt == min(BIC_opt))]]
+  
+  A_final$A_final_pars <- Aopt$est_Model_param
+  A_final$m_opt <- ncol(Aopt$est_Model_param$A)
+  A_final$A_log.Lik <- Aopt$log.Lik
+  A_final$diffList <- Aopt$diffList
+  A_final$A_BIC <- Aopt$BIC
+  A_final$tuningpA <- Aopt$tuningpA
+  A_final$A_time_diff <- Aopt$time.diff
+
+  All_final$B_estimates <- Best
+  All_final$A_estimates <- A_final
+  
+  return(All_final)
 }
 
 ## end of code

@@ -1,6 +1,6 @@
 ## OverallBAlg.R
 
-OverallBAlg <- function(X, tuningpB = seq(0,15,0.1), s_seq = 1:4, nfolds=10){
+OverallBAlg <- function(X, tuningpB = seq(0, 15, 0.1), s_seq = 1:4){
   
   #################################################################################
   ## create empty lists to store the optimal estimate of B (and corresponding estimates
@@ -8,18 +8,31 @@ OverallBAlg <- function(X, tuningpB = seq(0,15,0.1), s_seq = 1:4, nfolds=10){
   ## (i.e. 1 latent factor, 2 latent factors, etc.)
   #################################################################################
   
-  Blist <- replicate(length(s_seq),NA,simplify=F)
-  BIClist <- rep(0, length(s_seq))
+  Bestlist <- replicate(length(s_seq), NULL, simplify=F)
+  Best <- NULL
+  B_final <- NULL
+  BIC_previous <- 0
+  BIC_opt <- rep(0, length(s_seq))
+  
   for(i in 1:length(s_seq)){
-    
+    for(j in 1:length(tuningpB)){
     #################################################################################
     ## for each # of latent factors in the grid search, determine the optimal estimate
     ## of B/B0/Phi1, then save the corresponding estimates and BIC in the respective lists
     #################################################################################
     
-    Binit <- EMAlgB(X, s_seq[i])
-    Blist[[i]] <- EMAlgBAdLassoCV(X, s_seq[i], Binit$B, Binit$Phi1, tuningpB, weights = Binit$B)
-    BIClist[i] <- Blist[[i]]$BICopt
+      Binit <- B_inits(X, s_seq[i])
+      Best <- EMAlgBAdLassoCV(X, Binit, tuningpB[j], weights = Binit$B)
+
+      if(j == 1 | Best$BIC < BIC_previous){
+        Bestlist[[i]] <- Best
+        BIC_previous <- Bestlist[[i]]$BIC
+      }
+      
+    }
+    
+    BIC_opt[i] <- BIC_previous
+    
   }
   
   #################################################################################
@@ -27,9 +40,17 @@ OverallBAlg <- function(X, tuningpB = seq(0,15,0.1), s_seq = 1:4, nfolds=10){
   ## model estimates
   #################################################################################
   
-  sopt <- s_seq[which(BIClist == min(BIClist))]
-  optB <- Blist[[which(BIClist == min(BIClist))]]
-  return(list("Bopt" = optB, "optimal s" = sopt, "BIC" = optB$BICopt, "lambda" = optB$`optimal lambda`))
+  Bopt <- Bestlist[[which(BIC_opt == min(BIC_opt))]]
+  
+  B_final$B_final_pars <- Bopt$est_Model_param
+  B_final$s_opt <- ncol(Bopt$est_Model_param$B)
+  B_final$B_log.Lik <- Bopt$log.Lik
+  B_final$diffList <- Bopt$diffList
+  B_final$B_BIC <- Bopt$BIC
+  B_final$tuningpB <- Bopt$tuningpB
+  B_final$B_time_diff <- Bopt$time.diff
+  
+  return(B_final)
 }
 
 ## end of code

@@ -1,15 +1,29 @@
-## initvalcalc.R
+## A_inits.R
 
-initvalcalc <- function(X, Y, Binit, s, m, n){
+A_inits <- function(Data, Best, m){
   
   ############################################################################ 
   ## Obtain estimate of the matrix product A*Gamma using method of moments
   ############################################################################ 
   
-  AGamma <- t(solve(t(Binit)%*%Binit)%*%t(Binit)%*%cov(X, Y))
+  if(is.null(dim(Best$B_final_pars$B))){
+    B <- as.matrix(Best$B_final_pars$B)
+  }else{
+    B <- Best$B_final_pars$B
+  }
+  X <- Data$X
+  Y <- Data$Y
   
+  n <- nrow(X)
   p <- ncol(Y)
+  s <- ncol(B)
   
+  inits <- list()
+  
+  A0init <- as.matrix(colMeans(Y))
+
+  AGamma <- t(solve(t(B)%*%B)%*%t(B)%*%cov(X, Y))
+
   ############################################################################ 
   ## Use sample covariance matrix and estimate of A*Gamma to get the initial
   ## estimates of A/Phi2 using the nlminb() function
@@ -61,8 +75,14 @@ initvalcalc <- function(X, Y, Binit, s, m, n){
   }
   AAinv <- Matrix::solve(t(Ainit)%*%Ainit)
   Gammainit <- AAinv%*%t(Ainit)%*%AGamma
-  output <- list("Ainit" = Ainit, "Ginit" = Gammainit, "Phi2init" = Phi2init, "Phi3init" = Phi3init)
-  return(output)
+  
+  inits$A0 <- A0init
+  inits$A <- Ainit
+  inits$Gamma <- Gammainit
+  inits$Phi2 <- Phi2init
+  inits$Phi3 <- Phi3init
+
+  return(inits)
 }
 
 ## end of code

@@ -29,20 +29,25 @@ source(file = paste0(code_dir, "Lasso.R") )
 source(file = paste0(code_dir, "B_inits.R") )
 source(file = paste0(code_dir, "Estep_X.R") )
 source(file = paste0(code_dir, "Mstep_X.R") )
+source(file = paste0(code_dir, "logLik_X.R") )
+source(file = paste0(code_dir, "Convergence_check.R") )
+source(file = paste0(code_dir, "BIC_X.R") )
 source(file = paste0(code_dir, "EMAlgBAdLassoCV.R") )
 source(file = paste0(code_dir, "OverallBAlg.R") )
 
-Best <- OverallBAlg(MyData$X)
+Best <- OverallBAlg(MyData$X, 1:3, 2:3)
 
 
 ### To get estimates for the Y part ...
 
-source(file = paste0(code_dir, "initvalcalc.R") )
+source(file = paste0(code_dir, "A_inits.R") )
 source(file = paste0(code_dir, "Estep_Y.R") )
 source(file = paste0(code_dir, "Mstep_Y.R") )
+source(file = paste0(code_dir, "logLik_Y.R") )
+source(file = paste0(code_dir, "BIC_Y.R") )
 source(file = paste0(code_dir, "EMAlgAGammaAdLassoCV.R") )
 source(file = paste0(code_dir, "OverallAGAlg.R") )
 
-Aest <- OverallAGAlg(MyData$X, MyData$Y, Best, tuningpA = 1:10)
+Aest <- OverallAGAlg(MyData, Best, 1, 2)
 
 ## end of code
