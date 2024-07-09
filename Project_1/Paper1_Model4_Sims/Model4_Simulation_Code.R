@@ -13,7 +13,7 @@ set.seed(2435)
 ### To initialize parameters
 
 source(file = "Model4_Meta_Param.R")
-source(file = "Model45_Matrix_Param.R")
+source(file = "Model4_Matrix_Param.R")
 
 
 ### To generate simulated data 
