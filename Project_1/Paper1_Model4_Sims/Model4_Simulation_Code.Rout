@@ -1,0 +1,4 @@
+Error in socketAccept(socket = socket, blocking = TRUE, open = "a+b",  : 
+  all connections are in use
+Calls: makeCluster -> makePSOCKcluster -> socketAccept
+Execution halted
