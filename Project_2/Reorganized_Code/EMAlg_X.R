@@ -1,6 +1,6 @@
 ## EMAlg_X.R
 
-EMAlg_X <- function(Data, initial_Model_Params, tuningpA, tuningpB, weights){
+EMAlg_X <- function(Data, initial_Model_Params, tuningpA1, tuningpB1, tuningpA2, tuningpB2, weights){
   
   alg.start <- Sys.time()
   
@@ -22,7 +22,7 @@ EMAlg_X <- function(Data, initial_Model_Params, tuningpA, tuningpB, weights){
     #for B
     E_estimates <- Estep_X(Data, Old_Par)
     
-    M_estimates <- Mstep_X(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights)
+    M_estimates <- Mstep_X(Data, Old_Par, E_estimates, tuningpA1, tuningpB1, tuningpA2, tuningpB2, weights)
     
     log.lik <- logLik_X(Data, E_estimates) 
     myDiff <- Convergence_check(Old_Par, M_estimates)
@@ -45,7 +45,7 @@ EMAlg_X <- function(Data, initial_Model_Params, tuningpA, tuningpB, weights){
   time.diff <- Sys.time() - alg.start
   
   ## to save results 
-  return( list(est_Model_param = Old_Par,  log.Lik = logLikList, diffList = myDiffList, BIC = BICval, tuningpA = tuningpA, tuningpB = tuningpB, time.diff = time.diff) )
+  return( list(est_Model_param = Old_Par,  log.Lik = logLikList, diffList = myDiffList, BIC = BICval, tuningpA1 = tuningpA1, tuningpB1 = tuningpB1, tuningpA2 = tuningpA2, tuningpB2 = tuningpB2, time.diff = time.diff) )
 }
 
 ## end of code

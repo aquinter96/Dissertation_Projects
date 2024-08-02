@@ -4,19 +4,16 @@ Estep_X <- function(Data, Old_Par){
   
   ests <- list()
   
+  A1     <-   Old_Par$A1
+  A2     <-   Old_Par$A2
+  B1     <-   Old_Par$B1
+  B2     <-   Old_Par$B2
+  
   PhiR   <-   Old_Par$PhiR
   PhiS1  <-   Old_Par$PhiS1
   PhiS2  <-   Old_Par$PhiS2
   Phi11  <-   Old_Par$Phi11
   Phi12  <-   Old_Par$Phi12
-  A1     <-   Old_Par$A1
-  A2     <-   Old_Par$A2
-  B1     <-   Old_Par$B1
-  B2     <-   Old_Par$B2
-
-  PhiS1S <- cbind(PhiS1, matrix(0, nrow = u1, ncol = u2))
-  PhiS2S <- cbind(matrix(0, nrow = u2, ncol = u1), PhiS2)
-  PhiS <- diag(c(diag(PhiS1), diag(PhiS2)))
   
   m <- ncol(Old_Par$PhiR)
   u1 <- ncol(Old_Par$PhiS1)
@@ -24,6 +21,10 @@ Estep_X <- function(Data, Old_Par){
   q1 <-  ncol(Old_Par$Phi11)
   q2 <-  ncol(Old_Par$Phi12)
 
+  PhiS1S <- cbind(PhiS1, matrix(0, nrow = u1, ncol = u2))
+  PhiS2S <- cbind(matrix(0, nrow = u2, ncol = u1), PhiS2)
+  PhiS <- diag(c(diag(PhiS1), diag(PhiS2)))
+  
   ests$sigma21 <- rbind(cbind(PhiR%*%t(A1), PhiR%*%t(A2)), cbind(PhiS1%*%t(B1), matrix(0, nrow = u1, ncol = q2)), cbind(matrix(0, nrow = u2, ncol = q1), PhiS2%*%t(B2)))
   
   #calculate covariance of observed data, i.e. Cov(Xi1, Xi2, Yi1, Yi2)
@@ -45,7 +46,7 @@ Estep_X <- function(Data, Old_Par){
   # 
   # ERSVW <- sigma21%*%solve(sigma11)%*%rbind(t(Xpanel[[1]]), t(Xpanel[[2]]), t(Ypanel[[1]]), t(Ypanel[[2]]))
   # Xpanel = list(t(MyData$X1), t(MyData$X2)), Ypanel = list(t(MyData$Y1), t(MyData$Y2))  
-  ests$ERS <- ests$sigma21%*%solve(ests$sigma11)%*%rbind( (Data$X1), (Data$X2), (Data$Y1), (Data$Y2))
+  ests$ERS <- ests$sigma21%*%solve(ests$sigma11)%*%rbind( t(Data$X1), t(Data$X2))
 
   return(ests)
 }

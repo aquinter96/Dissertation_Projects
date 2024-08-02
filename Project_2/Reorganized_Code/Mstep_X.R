@@ -1,6 +1,6 @@
 ## Mstep_X.R
 
-Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
+Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA1, tuningpB1, tuningpA2, tuningpB2, weights){
   
   ests <- list()
   
@@ -22,16 +22,16 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
   B1new <- B1
   B2new <- B2
   
-  PhiS1S <- cbind(PhiS1, matrix(0, nrow = u1, ncol = u2))
-  PhiS2S <- cbind(matrix(0, nrow = u2, ncol = u1), PhiS2)
-  PhiS <- diag(c(diag(PhiS1), diag(PhiS2)))
-  
   m <- ncol(Old_Par$PhiR)
   u1 <- ncol(Old_Par$PhiS1)
   u2 <-  ncol(Old_Par$PhiS2)   
   q1 <-  ncol(Old_Par$Phi11)
   q2 <-  ncol(Old_Par$Phi12)
   n <- ncol(Data$X1) ## sample size
+  
+  PhiS1S <- cbind(PhiS1, matrix(0, nrow = u1, ncol = u2))
+  PhiS2S <- cbind(matrix(0, nrow = u2, ncol = u1), PhiS2)
+  PhiS <- diag(c(diag(PhiS1), diag(PhiS2)))
   
   condvar <- E_estimates$condvar
   
@@ -61,11 +61,11 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
         omegaijA1 <- (tcrossprod(ER) + n*condvarR)[-j,j]%*%A1[i,-j]
         tauijA1 <-  c(t(ER%*%t(ES1) + n*condvarRS1)[,j])%*%c(B1[i,])
         a1bar <- ((thetaijA1-omegaijA1-tauijA1))/(epsilonijA1)
-        if(weightsA[[1]][i,j] == 0){
-          lambdaA <- (tuningpA*Phi11[i,i])/epsilonijA1*(1/1e-5)
+        if(weights$A1[i,j] == 0){
+          lambdaA <- (tuningpA1*Phi11[i,i])/epsilonijA1*(1/1e-5)
         }
         else{
-          lambdaA <- (tuningpA*Phi11[i,i])/epsilonijA1*(1/abs(weights$A1[i,j]))
+          lambdaA <- (tuningpA1*Phi11[i,i])/epsilonijA1*(1/abs(weights$A1[i,j]))
         }
         A1new[i,j] <- lasso(a1bar, lambdaA)
       }
@@ -80,11 +80,11 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
       omegaijA2 <- (tcrossprod(ER) + n*condvarR)[-j,j]%*%A2[i,-j]
       tauijA2 <- c(t(ER%*%t(ES2) + n*condvarRS2)[,j])%*%c(B2[i,])
       a2bar <- ((thetaijA2-omegaijA2-tauijA2))/(epsilonijA2)
-      if(weightsA[[2]][i,j] == 0){
-        lambdaA <- (tuningpA*Phi12[i,i])/epsilonijA2*(1/1e-5)
+      if(weights$A2[i,j] == 0){
+        lambdaA <- (tuningpA2*Phi12[i,i])/epsilonijA2*(1/1e-5)
       }
       else{
-        lambdaA <- (tuningpA*Phi12[i,i])/epsilonijA2*(1/abs(weights$A2[i,j]))
+        lambdaA <- (tuningpA2*Phi12[i,i])/epsilonijA2*(1/abs(weights$A2[i,j]))
       }
       A2new[i,j] <- lasso(a2bar, lambdaA)
     }
@@ -100,11 +100,11 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
         omegaijB1 <- (tcrossprod(ES1) + n*condvarS1)[-j,j]%*%B1[i,-j]
         tauijB1 <- c(t(ES1%*%t(ER) + n*t(condvarRS1))[,j])%*%c(A1[i,])
         b1bar <- ((thetaijB1-omegaijB1-tauijB1))/(epsilonijB1)
-        if(weightsB[[1]][i,j] == 0){
-          lambdaB <- (tuningpB*Phi11[i,i])/epsilonijB1*(1/1e-5)
+        if(weights$B1[i,j] == 0){
+          lambdaB <- (tuningpB1*Phi11[i,i])/epsilonijB1*(1/1e-5)
         }
         else{
-          lambdaB <- (tuningpB*Phi11[i,i])/epsilonijB1*(1/abs(weights$B1[i,j]))
+          lambdaB <- (tuningpB1*Phi11[i,i])/epsilonijB1*(1/abs(weights$B1[i,j]))
         }
         B1new[i,j] <- lasso(b1bar, lambdaB)
       }
@@ -122,11 +122,11 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
         omegaijB2 <- (tcrossprod(ES2) + n*condvarS2)[-j,j]%*%B2[i,-j]
         tauijB2 <- c(t(ES2%*%t(ER) + n*t(condvarRS2))[,j])%*%c(A2[i,])
         b2bar <- ((thetaijB2-omegaijB2-tauijB2))/(epsilonijB2)
-        if(weightsB[[2]][i,j] == 0){
-          lambdaB <- (tuningpB*Phi12[i,i])/epsilonijB2*(1/1e-5)
+        if(weights$B2[i,j] == 0){
+          lambdaB <- (tuningpB2*Phi12[i,i])/epsilonijB2*(1/1e-5)
         }
         else{
-          lambdaB <- (tuningpB*Phi12[i,i])/epsilonijB2*(1/abs(weights$B2[i,j]))
+          lambdaB <- (tuningpB2*Phi12[i,i])/epsilonijB2*(1/abs(weights$B2[i,j]))
         }
         B2new[i,j] <- lasso(b2bar, lambdaB)
       }
@@ -146,8 +146,8 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA, tuningpB, weights){
                           + 2*A2new%*%ER%*%t(B2new%*%ES2) + n*A2new%*%condvarR%*%t(A2new) + A2new%*%ER%*%t(A2new%*%ER) + n*B2new%*%condvarS2%*%t(B2new) + B2new%*%ES2%*%t(B2new%*%ES2)))
 
   ests$A1 <- A1new
-  ests$A2 <- A2new
   ests$B1 <- B1new
+  ests$A2 <- A2new
   ests$B2 <- B2new
   
   ests$PhiR <- PhiRnew

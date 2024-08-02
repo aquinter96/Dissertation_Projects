@@ -3,9 +3,7 @@
 logLik_X <- function(Data, E_estimates){
   
   X1 <- Data$X1
-  x2 <- Data$X2
-  Y1 <- Data$Y1
-  Y2 <- Data$Y2
+  X2 <- Data$X2
   n <- nrow(X1)
   q1 <- ncol(X1)
   q2 <- ncol(X2)
