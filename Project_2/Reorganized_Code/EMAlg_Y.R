@@ -1,8 +1,13 @@
 ## EMAlg_X.R
 
-EMAlg_Y <- function(Data, Xest, initial_Model_Params, tuningpG1, tuningpD1, tuningpG2, tuningpD2, weights){
+EMAlg_Y <- function(tuningList, Data, Xest, initial_Model_Params, weights){
   
   alg.start <- Sys.time()
+  
+  tuningpG1 <- as.numeric(tuningList[1])
+  tuningpD1 <- as.numeric(tuningList[2])
+  tuningpG2 <- as.numeric(tuningList[3])
+  tuningpD2 <- as.numeric(tuningList[4])
   
   Old_Par <- initial_Model_Params
   Old_Par$A1 <- Xest$X_final_pars$A1

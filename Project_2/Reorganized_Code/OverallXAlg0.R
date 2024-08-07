@@ -1,58 +1,40 @@
 ## OverallXAlg.R
 
-OverallXAlg <- function(Data, tuningpA1 = seq(0, 15, 0.1), tuningpB1 = seq(0, 15, 0.1), tuningpA2 = seq(0, 15, 0.1), tuningpB2 = seq(0, 15, 0.1), m_seq = 1:4, u_seq = list(1:4, 1:4)){
+OverallXAlg <- function(Params, Data, tuningpA1 = seq(0, 15, 0.1), tuningpB1 = seq(0, 15, 0.1), tuningpA2 = seq(0, 15, 0.1), tuningpB2 = seq(0, 15, 0.1)){
   
   #################################################################################
   ## create empty lists to store the optimal estimate of B (and corresponding estimates
   ## of B0/Phi1) and corresponding BIC for each # of latent factors for X in the grid search 
   ## (i.e. 1 latent factor, 2 latent factors, etc.)
   #################################################################################
-
+  
   tuning_list <- list(tuningpA1, tuningpB1, tuningpA2, tuningpB2)
-
+  
   tuning_grid <- expand.grid(tuning_list)
+  tuning_grid <- lapply(seq_len(nrow(tuning_grid)), function(x) tuning_grid[x,])
   
-  u_combs <- expand.grid(u_seq)
-  u_grid <- lapply(seq_len(nrow(u_combs)), function(x) u_combs[x,])
-  
-  Xestlist <- replicate(length(m_seq)*length(u_grid), NULL, simplify=F)
   Xlist <- replicate(length(tuningpA1)*length(tuningpB1)*length(tuningpA2)*length(tuningpB2), list(), simplify=F)
   Xest <- NULL
   X_final <- NULL
   BICs <- rep(0, length(tuningpA1)*length(tuningpB1)*length(tuningpA2)*length(tuningpB2))
-  BIC_opt <- rep(0, length(m_seq)*length(u_grid))
   
-  k <- 0
-  
-      for(i in 1:length(m_seq)){
-        for(j in 1:length(u_grid)){
-          
-          k <- k + 1
-          #################################################################################
-          ## for each # of latent factors in the grid search, determine the optimal estimate
-          ## of B/B0/Phi1, then save the corresponding estimates and BIC in the respective lists
-          #################################################################################
-      
-          Xinit <- X_inits(Data, m_seq[i], as.numeric(u_grid[[j]]))
+  #################################################################################
+  ## for each # of latent factors in the grid search, determine the optimal estimate
+  ## of B/B0/Phi1, then save the corresponding estimates and BIC in the respective lists
+  #################################################################################
 
-          Xlist <- parLapply(cl, tuning_grid, EMAlg_X, Data, Xinit, Xinit)
+  Xlist <- parLapply(cl, tuning_grid, EMAlg_X, Data, Params, Params)
 
-          for(l in 1:length(u_grid)){
-            BICs <- Xlist[[l]]$BIC
-          }
+  for(i in 1:length(tuning_grid)){
+    BICs[i] <- Xlist[[i]]$BIC
+  }
 
-          BIC_opt[k] <- min(BICs)
-    
-          Xestlist[[k]] <-Xlist[[which(BICs == BIC_opt[k])]]
-        
-        }
-      }
   #################################################################################
   ## extract the # of latent factors that had the lowest BIC and the corresponding
   ## model estimates
   #################################################################################
   
-  Xopt <- Xestlist[[which(BIC_opt == min(BIC_opt))]]
+  Xopt <- Xlist[[which(BICs == min(BICs))]]
   
   X_final$X_final_pars <- Xopt$est_Model_param
   X_final$m_opt <- ncol(Xopt$est_Model_param$A1)

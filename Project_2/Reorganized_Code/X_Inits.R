@@ -1,14 +1,13 @@
 
-X_inits <- function(Data, joint, indiv){
+X_inits <- function(Data, m, u){
 
 inits <- list()
 
 X1 <- Data$X1
 X2 <- Data$X2
 
-m <- joint
-u1 <- indiv[1]
-u2 <- indiv[2]
+u1 <- u[1]
+u2 <- u[2]
 q1 <- ncol(X1)
 q2 <- ncol(X2)
 n <- nrow(X1)

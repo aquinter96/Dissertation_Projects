@@ -1,6 +1,6 @@
 ## OverallBAlg.R
 
-OverallYAlg <- function(Data, Xest, tuningpG1 = seq(0, 15, 0.1), tuningpD1 = seq(0, 15, 0.1), tuningpG2 = seq(0, 15, 0.1), tuningpD2 = seq(0, 15, 0.1), j_seq = 1:4, z_seq = list(1:4, 1:4)){
+OverallYAlg <- function(Params, Data, Xest, tuningpG1 = seq(0, 15, 0.1), tuningpD1 = seq(0, 15, 0.1), tuningpG2 = seq(0, 15, 0.1), tuningpD2 = seq(0, 15, 0.1)){
   
   #################################################################################
   ## create empty lists to store the optimal estimate of B (and corresponding estimates
@@ -11,46 +11,25 @@ OverallYAlg <- function(Data, Xest, tuningpG1 = seq(0, 15, 0.1), tuningpD1 = seq
   tuning_list <- list(tuningpG1, tuningpD1, tuningpG2, tuningpD2)
   
   tuning_grid <- expand.grid(tuning_list)
-  
-  z_combs <- expand.grid(z_seq)
-  z_grid <- lapply(seq_len(nrow(z_combs)), function(x) z_combs[x,])
-  
-  Yestlist <- replicate(length(j_seq)*length(z_grid), NULL, simplify=F)
-  Ylist <- replicate(length(tuningpG1)*length(tuningpD1)*length(tuningpG2)*length(tuningpD2), list(), simplify=F)
-  Yest <- NULL
-  Y_final <- NULL
-  BICs <- rep(0, length(tuningpG1)*length(tuningpD1)*length(tuningpG2)*length(tuningpD2))
-  BIC_opt <- rep(0, length(j_seq)*length(z_grid))
-  
-  c <- 0
+  tuning_grid <- lapply(seq_len(nrow(tuning_grid)), function(x) tuning_grid[x,])
 
-  for(a in 1:length(j_seq)){
-    for(b in 1:length(z_grid)){
+  Ylist <- replicate(length(tuningpG1)*length(tuningpD1)*length(tuningpG2)*length(tuningpD2), list(), simplify=F)
+  Y_final <- NULL
+  All_final <- NULL
+  BICs <- rep(0, length(tuningpG1)*length(tuningpD1)*length(tuningpG2)*length(tuningpD2))
+
+  Ylist <- parLapply(cl, tuning_grid, EMAlg_Y, Data, Xest, Params, Params)
       
-      c <- c + 1
-      
-      Yinit <- Y_inits(Data, Xest, j_seq[a], as.numeric(z_grid[[b]]))
-      
-      Ylist <- parLapply(cl, tuning_grid, EMAlg_Y, Data, Xest, Yinit, Yinit)
-      
-      for(d in 1:length(z_grid)){
-        BICs <- Ylist[[d]]$BIC
-      }
-      
-      BIC_opt[c] <- min(BICs)
-      
-      Xestlist[[c]] <-Xlist[[which(BICs == BIC_opt[c])]]
-      
-    }
+  for(i in 1:length(tuning_grid)){
+    BICs[i] <- Ylist[[i]]$BIC
   }
-  
-  
+
   #################################################################################
   ## extract the # of latent factors that had the lowest BIC and the corresponding
   ## model estimates
   #################################################################################
   
-  Yopt <- Yestlist[[which(BIC_opt == min(BIC_opt))]]
+  Yopt <- Ylist[[which(BICs == min(BICs))]]
   
   Y_final$Y_final_pars <- Yopt$est_Model_param
   Y_final$j_opt <- ncol(Yopt$est_Model_param$G1)
