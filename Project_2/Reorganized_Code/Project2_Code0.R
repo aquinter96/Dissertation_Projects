@@ -42,7 +42,7 @@ numCores <- Sys.getenv("SLURM_CPUS_PER_TASK")
 cl <- makeCluster(as.numeric(numCores))
 clusterExport(cl, c("lasso", "Estep_X", "Mstep_X", "logLik_X", "Convergence_check", "BIC_X"))
 
-Xest <- OverallXAlg0(Model_Params[c(1:4, 15:17, 21:22)], MyData, 1:4, 1:4, 1:4, 1:4)
+Xest <- OverallXAlg(Model_Params[c(1:4, 15:17, 21:22)], MyData, 1:4, 1:4, 1:4, 1:4)
 
 stopCluster(cl)
 
@@ -60,7 +60,7 @@ numCores <- Sys.getenv("SLURM_CPUS_PER_TASK")
 cl <- makeCluster(as.numeric(numCores))
 clusterExport(cl, c("lasso", "Estep_Y", "Mstep_Y", "logLik_Y", "Convergence_check", "BIC_Y"))
 
-Yest <- OverallYAlg0(Model_Params[c(5:11, 13, 12, 14, 23:27)], MyData, Xest, tuningpG1 = 1:4, tuningpD1 = 1:4, tuningpG2 = 1:4, tuningpD2 = 1:4)
+Yest <- OverallYAlg(Model_Params[c(5:11, 13, 12, 14, 23:27)], MyData, Xest, tuningpG1 = 1:4, tuningpD1 = 1:4, tuningpG2 = 1:4, tuningpD2 = 1:4)
 
 ## end of code
 
