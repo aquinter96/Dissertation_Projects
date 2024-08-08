@@ -27,7 +27,7 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA1, tuningpB1, tuningpA2,
   u2 <-  ncol(Old_Par$PhiS2)   
   q1 <-  ncol(Old_Par$Phi11)
   q2 <-  ncol(Old_Par$Phi12)
-  n <- ncol(Data$X1) ## sample size
+  n <- nrow(Data$X1) ## sample size
   
   PhiS1S <- cbind(PhiS1, matrix(0, nrow = u1, ncol = u2))
   PhiS2S <- cbind(matrix(0, nrow = u2, ncol = u1), PhiS2)
@@ -137,9 +137,9 @@ Mstep_X <- function(Data, Old_Par, E_estimates, tuningpA1, tuningpB1, tuningpA2,
   ## update covariance matrices
   #################################################################################
   
-  PhiRnew <- diag(diag(condvarR + 1/n*ER%*%t(ER)))
-  PhiS1new <- diag(diag(condvarS1 + 1/n*ES1%*%t(ES1)))
-  PhiS2new <- diag(diag(condvarS2 + 1/n*ES2%*%t(ES2)))
+  PhiRnew <- 1/n*diag(diag(n*condvarR + ER%*%t(ER)))
+  PhiS1new <- 1/n*diag(diag(n*condvarS1 + ES1%*%t(ES1)))
+  PhiS2new <- 1/n*diag(diag(n*condvarS2 + ES2%*%t(ES2)))
   Phi11new <- 1/n*diag(diag(t(X1)%*%X1 - 2*t(X1)%*%t(A1new%*%ER) - 2*t(X1)%*%t(B1new%*%ES1) + 2*n*A1new%*%condvarRS1%*%t(B1new)
                           + 2*A1new%*%ER%*%t(B1new%*%ES1) + n*A1new%*%condvarR%*%t(A1new) + A1new%*%ER%*%t(A1new%*%ER) + n*B1new%*%condvarS1%*%t(B1new) + B1new%*%ES1%*%t(B1new%*%ES1)))
   Phi12new <- 1/n*diag(diag(t(X2)%*%X2 - 2*t(X2)%*%t(A2new%*%ER) - 2*t(X2)%*%t(B2new%*%ES2) + 2*n*A2new%*%condvarRS2%*%t(B2new)

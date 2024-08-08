@@ -7,10 +7,10 @@ library(MASS)
 library(r.jive)
 library(parallel)
 
-## args <- commandArgs(TRUE)
-# datset <- 1 ## as.numeric(args[1])
-set.seed(2435)
+args <- commandArgs(TRUE)
+datset <- as.numeric(args[1])
 
+set.seed(2435)
 
 ### To initialize parameters
 
@@ -23,8 +23,8 @@ source(file = paste0(code_dir, "Model_Matrix_Param.R") )
 
 source(file = paste0(code_dir, "Data_Generation.R") )
 
-set.seed(1)
-MyData <- Data_Generation(n = 100, Model_Params=Model_Params)
+set.seed(datset)
+MyData <- Data_Generation(n = 1000, Model_Params=Model_Params)
 
 
 ### To get estimates for the X part ...
@@ -42,7 +42,7 @@ numCores <- Sys.getenv("SLURM_CPUS_PER_TASK")
 cl <- makeCluster(as.numeric(numCores))
 clusterExport(cl, c("lasso", "Estep_X", "Mstep_X", "logLik_X", "Convergence_check", "BIC_X"))
 
-Xest <- OverallXAlg(Model_Params[c(1:4, 15:17, 21:22)], MyData, 1:4, 1:4, 1:4, 1:4)
+Xest <- OverallXAlg(Model_Params[c(1:4, 15:17, 21:22)], MyData, 0:3, 0:3, 0:3, 0:3)
 
 stopCluster(cl)
 
@@ -60,8 +60,9 @@ numCores <- Sys.getenv("SLURM_CPUS_PER_TASK")
 cl <- makeCluster(as.numeric(numCores))
 clusterExport(cl, c("lasso", "Estep_Y", "Mstep_Y", "logLik_Y", "Convergence_check", "BIC_Y"))
 
-Yest <- OverallYAlg(Model_Params[c(5:11, 13, 12, 14, 23:27)], MyData, Xest, tuningpG1 = 1:4, tuningpD1 = 1:4, tuningpG2 = 1:4, tuningpD2 = 1:4)
+Yest <- OverallYAlg(Model_Params[c(5:11, 13, 12, 14, 23:27)], MyData, Xest, tuningpG1 = 0:3, tuningpD1 = 0:3, tuningpG2 = 0:3, tuningpD2 = 0:3)
 
+stopCluster(cl)
 ## end of code
 
-Ytest <- saveRDS(Yest, "XYtestout.rds")
+saveRDS(Yest, paste0("Sim", datset, ".rds"))
