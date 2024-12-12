@@ -24,6 +24,8 @@ OverallYAlg <- function(Data, Xest, tuningpG1 = seq(0, 15, 0.1), tuningpD1 = seq
   BICs <- rep(0, length(j_seq)*length(z_grid))
   BIC_opt <- rep(0, length(tuningpG1)*length(tuningpD1)*length(tuningpG2)*length(tuningpD2))
   
+  All_final <- list()
+  
   c <- 0
   
   for(i in 1:length(tuningpG1)){
