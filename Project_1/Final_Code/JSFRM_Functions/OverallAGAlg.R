@@ -37,7 +37,7 @@ OverallAGAlg <- function(Data, Best, tuningpA = seq(0, 15, 0.1), m_seq = 1:4){
     
     BIC_opt[i] <- min(BICs)
     
-    Aestlist[[i]] <-Alist[[which(BICs == BIC_opt[i])]]
+    Aestlist[[i]] <-Alist[[min(which(BICs == BIC_opt[i]))]]
     
   }
 

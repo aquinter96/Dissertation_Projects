@@ -30,7 +30,7 @@ OverallBAlg <- function(X, tuningpB = seq(0, 15, 0.1), s_seq = 1:4){
     
     BIC_opt[i] <- min(BICs)
     
-    Bestlist[[i]] <-Blist[[which(BICs == BIC_opt[i])]]
+    Bestlist[[i]] <-Blist[[min(which(BICs == BIC_opt[i]))]]
 
   }
   
