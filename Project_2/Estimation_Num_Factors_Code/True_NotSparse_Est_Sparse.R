@@ -31,17 +31,17 @@ MyData <- Data_Generation(n = sampsize, Model_Params=Model_Params)
 ### To get estimates for the X part ...
 
 source(file = paste0(code_dir, "Lasso.R") )
-source(file = paste0(code_dir, "X_Inits2.R") )
+source(file = paste0(code_dir, "X_Inits.R") )
 source(file = paste0(code_dir, "Estep_X.R") )
 source(file = paste0(code_dir, "Mstep_X.R") )
 source(file = paste0(code_dir, "logLik_X.R") )
 source(file = paste0(code_dir, "Convergence_check.R") )
 source(file = paste0(code_dir, "BIC_X.R") )
-source(file = paste0(code_dir, "EMAlg_X2.R") )
-source(file = paste0(code_dir, "OverallXAlg2.R") )
+source(file = paste0(code_dir, "EMAlg_X.R") )
+source(file = paste0(code_dir, "OverallXAlg.R") )
 
-Singular_ErrorX2 <- function(initial_Model_Params, Data, tuningpA1, tuningpB1, tuningpA2, tuningpB2){
-  return(tryCatch(EMAlg_X(initial_Model_Params, Data, tuningpA1, tuningpB1, tuningpA2, tuningpB2), error = function(e) NULL))
+Singular_ErrorX <- function(tuningList, Data, initial_Model_Params, weights){
+  return(tryCatch(EMAlg_X(tuningList, Data, initial_Model_Params, weights), error = function(e) NULL))
 }
 
 ### UNCOMMENT THIS CHUNK TO ESTIMATE X ###
