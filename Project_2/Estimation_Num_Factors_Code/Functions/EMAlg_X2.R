@@ -22,13 +22,9 @@ EMAlg_X <- function(initial_Model_Params, Data, tuningpA1, tuningpB1, tuningpA2,
     #for the first iteration of the algorithm ONLY, use grid search to calculate the optimal tuning parameter combination
     #for B
     E_estimates <- Estep_X(Data, Old_Par)
-    
-    print("E done")
-    
+
     M_estimates <- Mstep_X(Data, Old_Par, E_estimates, tuningpA1, tuningpB1, tuningpA2, tuningpB2, weights)
-    
-    print("M done")
-    
+
     log.lik <- logLik_X(Data, E_estimates) 
     myDiff <- Convergence_check(Old_Par, M_estimates)
     diff_criteria <-  max(myDiff)

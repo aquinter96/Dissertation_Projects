@@ -39,16 +39,25 @@ OverallXAlg <- function(Data, tuningpA1 = seq(0, 15, 0.1), tuningpB1 = seq(0, 15
       #Xinits <- lapply(lat_grid, X_inits, Data)
       
       #Xlist <- lapply(Xinits, EMAlg_X, Data, tuningpA1[i], tuningpB1[j], tuningpA2[k], tuningpB2[l])
-      Xlist <- parLapply(cl, Xinits, EMAlg_X, Data, tuningpA1[i], tuningpB1[j], tuningpA2[k], tuningpB2[l])
-      
-      for(c in 1:length(Xlist)){
-        BICs[[c]] <- Xlist[[c]]$BIC
+      Xlist <- parLapply(cl, Xinits, Singular_ErrorX2, Data, tuningpA1[i], tuningpB1[j], tuningpA2[k], tuningpB2[l])
+      Xlist[sapply(Xlist, is.null)] <- NULL
+      length(BICs) <- length(Xlist)
+      if(length(Xlist) >= 1){
+        for(h in 1:length(Xlist)){
+          BICs[h] <- Xlist[[h]]$BIC
+        }
+        
+        Xlist <- Xlist[which(!is.nan(BICs))]
+        BICs <- BICs[!is.nan(BICs)]
+        
+        BIC_opt[k] <- min(BICs)
+        
+        Xestlist[[k]] <- Xlist[[min(which(BICs == BIC_opt[k]))]]
       }
-      
-      BIC_opt[m] <- min(BICs)
-      
-      Xestlist[[m]] <-Xlist[[which(BICs == BIC_opt[m])]]
-      
+      else{
+        BIC_opt[k] <- NA
+        Xestlist[[k]] <- NULL
+      }
         }
       }
     }
@@ -58,7 +67,7 @@ OverallXAlg <- function(Data, tuningpA1 = seq(0, 15, 0.1), tuningpB1 = seq(0, 15
   ## model estimates
   #################################################################################
   
-  Xopt <- Xestlist[[which(BIC_opt == min(BIC_opt))]]
+  Xopt <- Xestlist[[which(BIC_opt == min(BIC_opt, na.rm = T))]]
   
   X_final$X_final_pars <- Xopt$est_Model_param
   X_final$m_opt <- ncol(Xopt$est_Model_param$A1)
