@@ -1,5 +1,4 @@
 X_inits <- function(lats, Data){
-  print("inits double start")
   inits <- list()
   
   X1 <- Data$X1
@@ -111,72 +110,62 @@ X_inits <- function(lats, Data){
     mold <- mnew
     uold <- unew
     
+    gradMatrix = 4 * (Lambdaold %*% t(Lambdaold) %*% Lambdaold - D %*% Lambdaold + Phi1init %*% Lambdaold)
+    
     for(a in 1:m){
       for(b in 1:m){
         if(a >= b){
-          Smat[a,b] <- 1
-          grad.lam <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi1init%*%Lambdaold))%*%Smat))
-          mnew[a,b] <- beta1*mold[a,b] + (1-beta1)*grad.lam
-          unew[a,b] <- max(beta2*uold[a,b], abs(grad.lam))
-          Lambdanew[a,b] <- Lambdaold[a,b] - alpha/(1 - beta1^k)*mnew[a,b]/unew[a,b]
-          Smat <- matrix(0, nrow = q1+q2, ncol = m+u1+u2)
+          grad.lam <- gradMatrix[a, b]
+          mnew[a, b] <- beta1 * mold[a, b] + (1 - beta1) * grad.lam
+          unew[a, b] <- max(beta2 * uold[a, b], abs(grad.lam))
+          Lambdanew[a, b] <- Lambdaold[a, b] - alpha / (1 - beta1^k) * mnew[a, b] / unew[a, b]
         }
       }
     }
     for(a in (m+1):(q1+q2)){
       for(b in 1:m){
-        Smat[a,b] <- 1
-        grad.lam <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi1init%*%Lambdaold))%*%Smat))
-        mnew[a,b] <- beta1*mold[a,b] + (1-beta1)*grad.lam
-        unew[a,b] <- max(beta2*uold[a,b], abs(grad.lam))
-        Lambdanew[a,b] <- Lambdaold[a,b] - alpha/(1 - beta1^k)*mnew[a,b]/unew[a,b]
-        Smat <- matrix(0, nrow = q1+q2, ncol = m+u1+u2)
+        grad.lam <- gradMatrix[a, b]
+        mnew[a, b] <- beta1 * mold[a, b] + (1 - beta1) * grad.lam
+        unew[a, b] <- max(beta2 * uold[a, b], abs(grad.lam))
+        Lambdanew[a, b] <- Lambdaold[a, b] - alpha / (1 - beta1^k) * mnew[a, b] / unew[a, b]
       }
     }
     
     for(a in 1:u1){
       for(b in (m+1):(m+u1)){
         if(a >= (b - m)){
-          Smat[a,b] <- 1
-          grad.lam <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi1init%*%Lambdaold))%*%Smat))
-          mnew[a,b] <- beta1*mold[a,b] + (1-beta1)*grad.lam
-          unew[a,b] <- max(beta2*uold[a,b], abs(grad.lam))
-          Lambdanew[a,b] <- Lambdaold[a,b] - alpha/(1 - beta1^k)*mnew[a,b]/unew[a,b]
-          Smat <- matrix(0, nrow = q1+q2, ncol = m+u1+u2)
+          grad.lam <- gradMatrix[a, b]
+          mnew[a, b] <- beta1 * mold[a, b] + (1 - beta1) * grad.lam
+          unew[a, b] <- max(beta2 * uold[a, b], abs(grad.lam))
+          Lambdanew[a, b] <- Lambdaold[a, b] - alpha / (1 - beta1^k) * mnew[a, b] / unew[a, b]
         }
       }
     }
     for(a in (u1+1):q1){
       for(b in (m+1):(m+u1)){
-        Smat[a,b] <- 1
-        grad.lam <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi1init%*%Lambdaold))%*%Smat))
-        mnew[a,b] <- beta1*mold[a,b] + (1-beta1)*grad.lam
-        unew[a,b] <- max(beta2*uold[a,b], abs(grad.lam))
-        Lambdanew[a,b] <- Lambdaold[a,b] - alpha/(1 - beta1^k)*mnew[a,b]/unew[a,b]
-        Smat <- matrix(0, nrow = q1+q2, ncol = m+u1+u2)
+        grad.lam <- gradMatrix[a, b]
+        mnew[a, b] <- beta1 * mold[a, b] + (1 - beta1) * grad.lam
+        unew[a, b] <- max(beta2 * uold[a, b], abs(grad.lam))
+        Lambdanew[a, b] <- Lambdaold[a, b] - alpha / (1 - beta1^k) * mnew[a, b] / unew[a, b]
       }
     }
     
     for(a in (q1+1):(q1+u2)){
       for(b in (m+u1+1):(m+u1+u2)){
         if((a-q1) >= (b-m-u1)){
-          Smat[a,b] <- 1
-          grad.lam <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi1init%*%Lambdaold))%*%Smat))
-          mnew[a,b] <- beta1*mold[a,b] + (1-beta1)*grad.lam
-          unew[a,b] <- max(beta2*uold[a,b], abs(grad.lam))
-          Lambdanew[a,b] <- Lambdaold[a,b] - alpha/(1 - beta1^k)*mnew[a,b]/unew[a,b]
-          Smat <- matrix(0, nrow = q1+q2, ncol = m+u1+u2)
+          grad.lam <- gradMatrix[a, b]
+          mnew[a, b] <- beta1 * mold[a, b] + (1 - beta1) * grad.lam
+          unew[a, b] <- max(beta2 * uold[a, b], abs(grad.lam))
+          Lambdanew[a, b] <- Lambdaold[a, b] - alpha / (1 - beta1^k) * mnew[a, b] / unew[a, b]
         }
       }
     }
     for(a in (q1+u2+1):(q1+q2)){
       for(b in (m+u1+1):(m+u1+u2)){
-        Smat[a,b] <- 1
-        grad.lam <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi1init%*%Lambdaold))%*%Smat))
-        mnew[a,b] <- beta1*mold[a,b] + (1-beta1)*grad.lam
-        unew[a,b] <- max(beta2*uold[a,b], abs(grad.lam))
-        Lambdanew[a,b] <- Lambdaold[a,b] - alpha/(1 - beta1^k)*mnew[a,b]/unew[a,b]
-        Smat <- matrix(0, nrow = q1+q2, ncol = m+u1+u2)
+        grad.lam <- gradMatrix[a, b]
+        mnew[a, b] <- beta1 * mold[a, b] + (1 - beta1) * grad.lam
+        unew[a, b] <- max(beta2 * uold[a, b], abs(grad.lam))
+        Lambdanew[a, b] <- Lambdaold[a, b] - alpha / (1 - beta1^k) * mnew[a, b] / unew[a, b]
       }
     }
     k <- k+1
@@ -203,13 +192,13 @@ X_inits <- function(lats, Data){
     mold <- mnew
     uold <- unew
     
-    for(a in 2:(q1+q2)){
-      Smat[a,a] <- 1
-      grad.phi <- sum(diag(2*(Lambdanew%*%t(Lambdanew) + Phiold - D)%*%Smat))
+    gradMatrix <- 2*(Lambdanew%*%t(Lambdanew) + Phiold - D)
+    
+    for(a in 1:(q1+q2)){
+      grad.phi <- gradMatrix[a, a]
       mnew[a] <- beta1*mold[a] + (1-beta1)*grad.phi
       unew[a] <- max(beta2*uold[a], abs(grad.phi))
       Phinew[a,a] <- Phiold[a,a] - alpha/(1 - beta1^k)*mnew[a]/unew[a]
-      Smat <- matrix(0, nrow = q1+q2, ncol = q1+q2)
     }
     
     k <- k+1
