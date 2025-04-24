@@ -129,7 +129,7 @@ Y_inits <- function(lats, Data, Xest){
     mold <- mnew
     uold <- unew
     
-    gradMatrix <- sum(diag(t(4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi2init%*%Lambdaold))))
+    gradMatrix <- 4*(Lambdaold%*%t(Lambdaold)%*%Lambdaold - D%*%Lambdaold + Phi2init%*%Lambdaold)
     
     for(a in 1:j){
       for(b in 1:j){
@@ -207,7 +207,7 @@ Y_inits <- function(lats, Data, Xest){
     mold <- mnew
     uold <- unew
     
-    gradMatrix <- sum(diag(2*(Lambdanew%*%t(Lambdanew) + Phiold - D)))
+    gradMatrix <- 2*(Lambdanew%*%t(Lambdanew) + Phiold - D)
     
     for(a in 1:(p1+p2)){
       grad.phi <- gradMatrix[a, a]
