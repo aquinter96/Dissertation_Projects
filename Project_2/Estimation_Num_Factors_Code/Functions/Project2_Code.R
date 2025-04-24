@@ -104,7 +104,7 @@ source(file = paste0(code_dir, "OverallYAlgNM.R") )
 # }
 
 NMWrapperY <- function(Yinit, Data, Xest, tuningvals){
-  return(neldermead(tuningvals, EMAlg_Y, lower = rep(0, 4), Data = Data, Xest = Xest, initial_Model_Params = Xinit))
+  return(neldermead(tuningvals, EMAlg_Y, lower = rep(0, 4), Data = Data, Xest = Xest, initial_Model_Params = Yinit))
 }
 
 numCores <- Sys.getenv("SLURM_CPUS_PER_TASK")
