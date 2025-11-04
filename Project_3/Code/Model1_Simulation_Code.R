@@ -29,8 +29,6 @@ MyData <- Data_Generation(n = sampsize, Model_Params=Model_Params)
 
 source(file = "Lasso.R")
 
-MyData$X <- MyData$M
-MyData$M <- MyData$Y
 ### Intialize cluster with 4 nodes and export auxillary functions to nodes
 # tottime <- system.time({
   
@@ -77,27 +75,27 @@ MyData$M <- MyData$Y
 
   stopCluster(cl)
 
-  # source(file = "C_inits.R")
-  # source(file = "Estep_Y.R")
-  # source(file = "Mstep_Y.R")
-  # source(file = "logLik_Y.R")
-  # source(file = "BIC_Y.R")
-  # source(file = "EMAlgY.R")
-  # source(file = "OverallYAlg.R")
-  # 
-  # Singular_ErrorY <- function(tuningList, Data, Mest, initial_Model_Params){
-  #   return(tryCatch(EMAlgY(tuningList, Data, Mest, initial_Model_Params), error = function(e) NULL))
-  # }
-  # 
-  # numCores <- Sys.getenv("SLURM_CPUS_PER_TASK") 
-  # cl <- makeCluster(as.numeric(numCores))
-  # clusterExport(cl, c("lasso", "Estep_Y", "Mstep_Y", "logLik_Y", "Convergence_check", "BIC_Y", "EMAlgY"))
-  # 
-  # #Yest <- OverallYAlg(MyData, Mest)
-  # Yest <- OverallYAlg(MyData, Model_Params, tuningpC = 0, tuningpD = 0)
+  source(file = "C_inits.R")
+  source(file = "Estep_Y.R")
+  source(file = "Mstep_Y.R")
+  source(file = "logLik_Y.R")
+  source(file = "BIC_Y.R")
+  source(file = "EMAlgY.R")
+  source(file = "OverallYAlg.R")
+
+  Singular_ErrorY <- function(tuningList, Data, Mest, initial_Model_Params){
+    return(tryCatch(EMAlgY(tuningList, Data, Mest, initial_Model_Params), error = function(e) NULL))
+  }
+
+  numCores <- Sys.getenv("SLURM_CPUS_PER_TASK")
+  cl <- makeCluster(as.numeric(numCores))
+  clusterExport(cl, c("lasso", "Estep_Y", "Mstep_Y", "logLik_Y", "Convergence_check", "BIC_Y", "EMAlgY"))
+
+  #Yest <- OverallYAlg(MyData, Mest)
+  Yest <- OverallYAlg(MyData, Model_Params, tuningpC = 0, tuningpD = 0)
   
 # })
 
 #Yest$tot.time <- tottime
 
-saveRDS(Mest, file=paste0("Model1MYrep", datset, "n", sampsize, ".rds"))
+saveRDS(Yest, file=paste0("Model1MYrep", datset, "n", sampsize, ".rds"))
