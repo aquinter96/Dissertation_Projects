@@ -1,6 +1,6 @@
 ## B_inits.R
 
-B_inits <- function(X, s){
+B_inits <- function(s, X){
   
   #define initial values for B0, B, and Phi1
   niter <- 0

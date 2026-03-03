@@ -1,6 +1,6 @@
 ## EMAlgBAdLassoCV.R
 
-EMAlgX <- function(tuningpB, Data, initial_Model_Params, weights){
+EMAlgX <- function(tuningvals, Data, initial_Model_Params, NM = T){
   
   alg.start <- Sys.time()
 
@@ -9,6 +9,8 @@ EMAlgX <- function(tuningpB, Data, initial_Model_Params, weights){
   logLikList <- NULL 
   myDiffList <- NULL
   niter <- 0
+  
+  weights <- initial_Model_Params$B
   
   #define initial values for B0/B/Phi1
 
@@ -22,13 +24,13 @@ EMAlgX <- function(tuningpB, Data, initial_Model_Params, weights){
     #for B
     E_estimates <- Estep_X(Data, Old_Par)
 
-    M_estimates <- Mstep_X(Data, Old_Par, E_estimates, tuningpB, weights)
+    M_estimates <- Mstep_X(Data, Old_Par, E_estimates, tuningvals, weights)
     
     log.lik <- logLik_X(Data, E_estimates) 
     myDiff <- Convergence_check(Old_Par, M_estimates)
     diff_criteria <-  max(myDiff)
     
-    if (niter > 300 | diff_criteria< 0.001 ){
+    if (niter > 1000 | diff_criteria< 0.001 ){
       continue_status <- 0
     }
     
@@ -44,8 +46,13 @@ EMAlgX <- function(tuningpB, Data, initial_Model_Params, weights){
 
   time.diff <- Sys.time() - alg.start
   
-  ## to save results 
-  return( list(est_Model_param = Old_Par,  log.Lik = logLikList, diffList = myDiffList, BIC = BICval, tuningpB = tuningpB, time.diff = time.diff) )
+  ## to save results
+  if(NM == T){
+    return(BICval)
+  }else{
+    return( list(est_Model_param = Old_Par,  log.Lik = logLikList, diffList = myDiffList, BIC = BICval, tuningpB = tuningvals, time.diff = time.diff) )
+  }
+
 }
 
 ## end of code

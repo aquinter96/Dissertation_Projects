@@ -1,6 +1,6 @@
 ## EMAlgAGammaAdLassoCV.R
 
-EMAlgM <- function(tuningpA, Data, Xest, initial_Model_Params, weights){
+EMAlgM <- function(tuningvals, Data, Xest, initial_Model_Params, NM = T){
   
   alg.start <- Sys.time()
   
@@ -15,6 +15,8 @@ EMAlgM <- function(tuningpA, Data, Xest, initial_Model_Params, weights){
   logLikList <- NULL 
   myDiffList <- NULL
   niter <- 0
+  
+  weights <- initial_Model_Params$A
   ############################################################################ 
   ## The EM iterations: the while loop
   ############################################################################ 
@@ -23,7 +25,7 @@ EMAlgM <- function(tuningpA, Data, Xest, initial_Model_Params, weights){
     
     E_estimates <- Estep_M(Data, Old_Par)
     
-    M_estimates <- Mstep_M(Data, Old_Par, E_estimates, tuningpA, weights)
+    M_estimates <- Mstep_M(Data, Old_Par, E_estimates, tuningvals, weights)
     
     log.lik <- logLik_M(Data, E_estimates)
     myDiff <- Convergence_check(Old_Par[-c(6, 7, 8, 9)], M_estimates)
@@ -47,7 +49,12 @@ EMAlgM <- function(tuningpA, Data, Xest, initial_Model_Params, weights){
   
   time.diff <- Sys.time() - alg.start
   
-  return( list(est_Model_param = Old_Par,  log.Like = logLikList, diffList = myDiffList, BIC = BICval, tuningpA = tuningpA, time.diff = time.diff) )
+  if(NM == T){
+    return(BICval)
+  }else{
+    return(list(est_Model_param = Old_Par,  log.Like = logLikList, diffList = myDiffList, BIC = BICval, tuningpA = tuningvals, time.diff = time.diff) )
+  }
+
 }
 
 ## end of code

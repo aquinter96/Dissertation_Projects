@@ -1,6 +1,6 @@
 ## A_inits.R
 
-A_inits <- function(Data, Xest, m){
+A_inits <- function(m, Data, Xest){
   
   ############################################################################ 
   ## Obtain estimate of the matrix product A*Gamma using method of moments

@@ -1,6 +1,6 @@
 ## C_inits.R
 
-C_inits <- function(Data, Mest, t){
+C_inits <- function(t, Data, Mest){
   
   ############################################################################ 
   ## Obtain estimate of the matrix product A*Gamma using method of moments
@@ -29,7 +29,7 @@ C_inits <- function(Data, Mest, t){
   n <- nrow(X)
   r <- ncol(Y)
   m <- ncol(M)
-  
+  s <- ncol(B)
   inits <- list()
   
   C0init <- as.matrix(colMeans(Y))
@@ -39,7 +39,7 @@ C_inits <- function(Data, Mest, t){
   
   CDelta <- t(solve(Phi2)%*%(MCov1 - Gamma%*%Psi%*%XCov1))
   Dinit <- t(XCov1 - t(Gamma)%*%t(CDelta))
-  
+  #Dinit <- matrix(0, nrow = r, ncol = s)
   ############################################################################ 
   ## Use sample covariance matrix and estimate of A*Gamma to get the initial
   ## estimates of A/Phi2 using the nlminb() function

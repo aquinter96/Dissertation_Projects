@@ -1,6 +1,6 @@
 ## OverallAGAlg.R
 
-OverallMAlg <- function(Data, Xest, tuningpA = seq(0, 15, 0.1), m_seq = 1:4){
+OverallMAlg <- function(Data, Xest, m_seq = 1:4){
   
   #################################################################################
   ## create empty lists to store the optimal estimate of A (and corresponding estimates
@@ -9,70 +9,56 @@ OverallMAlg <- function(Data, Xest, tuningpA = seq(0, 15, 0.1), m_seq = 1:4){
   ## calculated in OverallBAlg.R of B/B0/Phi1 for use in the estimation of A/A0/Gamma/Phi2/Phi3
   #################################################################################
   
-  Aestlist <- replicate(length(m_seq), NULL, simplify=F)
-  Alist <- replicate(length(tuningpA), list(), simplify=F)
-  Aest <- NULL
+  Mestlist <- replicate(length(m_seq), NULL, simplify=F)
+  Mest <- NULL
   M_final <- NULL
   All_final <- list()
-  BICs <- rep(0, length(tuningpA))
   BIC_opt <- rep(0, length(m_seq))
+  tuningvals <- 0
   
   #################################################################################
   ## for each # of latent factors in the grid search, determine the optimal estimate
   ## of A/A0/GammaPhi2/Phi3, then save the corresponding estimates and BIC in the respective lists
   #################################################################################
   
-  for(i in 1:length(m_seq)){
     #################################################################################
     ## for each # of latent factors in the grid search, determine the optimal estimate
     ## of B/B0/Phi1, then save the corresponding estimates and BIC in the respective lists
     #################################################################################
     
-    Ainit <- A_inits(Data, Xest, m_seq[i])
-    Alist <- parLapply(cl, tuningpA, Singular_ErrorM, Data, Xest, Ainit, Ainit$A)
-    # Alist <- parLapply(cl, tuningpA, EMAlgAGammaAdLassoCV, Data, Best, Ainit, Ainit$A)
-    
-    Alist[sapply(Alist, is.null)] <- NULL
-    length(BICs) <- length(Alist)
-    
-    if(length(Alist) >= 1){
-      for(j in 1:length(Alist)){
-        BICs[j] <- Alist[[j]]$BIC
-      }
-      
-      Alist <- Alist[which(!is.nan(BICs))]
-      BICs <- BICs[!is.nan(BICs)]
-      
-      BIC_opt[i] <- min(BICs)
-      
-      Aestlist[[i]] <- Alist[[min(which(BICs == BIC_opt[i]))]]
-    }
-    else{
-      BIC_opt[i] <- NA
-      Aestlist[[i]] <- NULL
-    }
-    
-  }
+    Minits <- lapply(m_seq, NMWrapperMinit, Data, Xest)
+    Minits <- Minits[!sapply(Minits,is.null)]
+    Mestlist <- lapply(Minits, NMWrapperM, Data, Xest, tuningvals)
+    Mestlist <- Mestlist[!sapply(Mestlist,is.null)]
 
   #################################################################################
   ## extract the # of latent factors that had the lowest BIC and the corresponding
   ## model estimates
   #################################################################################
   
-  Aopt <- Aestlist[[which(BIC_opt == min(BIC_opt, na.rm = T))]]
+  if(length(Mestlist) == 0){
+    return(print("All models failed to converge"))
+  }else{
+    
+  BIC_opt <- unlist(lapply(Mestlist, function(x)x$value))
+  Minit_opt <- Minits[[which(BIC_opt == min(BIC_opt, na.rm = T))]]
+  tune_opt <- Mestlist[[which(BIC_opt == min(BIC_opt, na.rm = T))]]$par
+
+  Mopt <- EMAlgM(tune_opt, Data, Xest, Minit_opt, NM = F)
   
-  M_final$M_final_pars <- Aopt$est_Model_param
-  M_final$m_opt <- ncol(Aopt$est_Model_param$A)
-  M_final$M_log.Lik <- Aopt$log.Lik
-  M_final$diffList <- Aopt$diffList
-  M_final$M_BIC <- Aopt$BIC
-  M_final$tuningpA <- Aopt$tuningpA
-  M_final$M_time_diff <- Aopt$time.diff
+  M_final$M_final_pars <- Mopt$est_Model_param
+  M_final$m_opt <- ncol(Mopt$est_Model_param$A)
+  M_final$M_log.Lik <- Mopt$log.Lik
+  M_final$diffList <- Mopt$diffList
+  M_final$M_BIC <- Mopt$BIC
+  M_final$tuningpA <- Mopt$tuningpA
+  M_final$M_time_diff <- Mopt$time.diff
 
   All_final$X_estimates <- Xest
   All_final$M_estimates <- M_final
   
   return(All_final)
+  }
 }
 
 ## end of code

@@ -1,16 +1,28 @@
 ## EMAlgAGammaAdLassoCV.R
 
-EMAlgY <- function(tuningList, Data, Mest, initial_Model_Params){
+EMAlgY <- function(tuningvals, Data, Mest, initial_Model_Params, NM = T){
   
   alg.start <- Sys.time()
   
-  tuningpC <- as.numeric(tuningList[1])
-  #tuningpC <- 0
-  tuningpD <- as.numeric(tuningList[2])
-  #tuningpD <- 0
+  #tuningpC <- as.numeric(tuningList[1])
+  tuningpC <- tuningvals[1]
+  #tuningpD <- as.numeric(tuningList[2])
+  tuningpD <- tuningvals[2]
   
-  #define initial values for intercept vector C0 and coefficient matrix C
+  #define initial values for intercept vector B0 and coefficient matrix B
   
+  # Old_Par <- initial_Model_Params
+  # Old_Par$A <- Mest$M_estimates$M_final_pars$A
+  # Old_Par$A0 <- Mest$M_estimates$M_final_pars$A0
+  # Old_Par$Gamma <- Mest$M_estimates$M_final_pars$Gamma
+  # Old_Par$Phi2 <- Mest$M_estimates$M_final_pars$Phi2
+  # Old_Par$Phi3 <- Mest$M_estimates$M_final_pars$Phi3
+  # Old_Par$B <- Mest$X_estimates$X_final_pars$B
+  # Old_Par$B0 <- Mest$X_estimates$X_final_pars$B0
+  # Old_Par$Phi1 <- Mest$X_estimates$X_final_pars$Phi1
+  # Old_Par$Psi <- Mest$X_estimates$X_final_pars$Psi
+  # weights <- Old_Par
+
   Old_Par <- initial_Model_Params
   Old_Par$A <- Mest$M_estimates$M_final_pars$A
   Old_Par$A0 <- Mest$M_estimates$M_final_pars$A0
@@ -22,18 +34,6 @@ EMAlgY <- function(tuningList, Data, Mest, initial_Model_Params){
   Old_Par$Phi1 <- Mest$X_estimates$X_final_pars$Phi1
   Old_Par$Psi <- Mest$X_estimates$X_final_pars$Psi
   weights <- Old_Par
-
-  # Old_Par <- initial_Model_Params
-  # # Old_Par$A <- Mest$M_estimates$M_final_pars$A
-  # # Old_Par$A0 <- Mest$M_estimates$M_final_pars$A0
-  # # Old_Par$Gamma <- Mest$M_estimates$M_final_pars$Gamma
-  # # Old_Par$Phi2 <- Mest$M_estimates$M_final_pars$Phi2
-  # # Old_Par$Phi3 <- Mest$M_estimates$M_final_pars$Phi3
-  # # Old_Par$B <- Mest$X_estimates$X_final_pars$B
-  # # Old_Par$B0 <- Mest$X_estimates$X_final_pars$B0
-  # # Old_Par$Phi1 <- Mest$X_estimates$X_final_pars$Phi1
-  # # Old_Par$Psi <- Mest$X_estimates$X_final_pars$Psi
-  # weights <- Old_Par
   
   continue_status <- 1
   logLikList <- NULL 
@@ -50,7 +50,7 @@ EMAlgY <- function(tuningList, Data, Mest, initial_Model_Params){
     M_estimates <- Mstep_Y(Data, Old_Par, E_estimates, tuningpC, tuningpD, weights)
     
     log.lik <- logLik_Y(Data, E_estimates)
-    myDiff <- Convergence_check(Old_Par[-c(7:15)], M_estimates)
+    myDiff <- Convergence_check(Old_Par[-c(7:15)], M_estimates[-c(7:15)])
     #myDiff <- Convergence_check(Old_Par[-c(1:8, 10:15)], M_estimates[-c(1:8, 10:15)])
     
     diff_criteria <-  max(myDiff)
@@ -74,7 +74,12 @@ EMAlgY <- function(tuningList, Data, Mest, initial_Model_Params){
   
   time.diff <- Sys.time() - alg.start
   
-  return( list(est_Model_param = Old_Par,  log.Like = logLikList, diffList = myDiffList, BIC = BICval, tuningpC = tuningpC, tuningpD = tuningpD, time.diff = time.diff) )
+  if(NM == T){
+    return(BICval)
+  }else{
+    return( list(est_Model_param = Old_Par,  log.Like = logLikList, diffList = myDiffList, BIC = BICval, tuningpC = tuningpC, tuningpD = tuningpD, time.diff = time.diff) )
+  }
+
 }
 
 ## end of code

@@ -13,7 +13,11 @@ logLik_Y <- function(Data, E_estimates){
   p <- ncol(M)
   r <- ncol(Y)
   
-  log.lik <- -(n/2)*(sum(diag(inv11%*%(cov(cbind(X,M,Y))+(colMeans(cbind(X,M,Y)) - colMeans(cbind(X,M,Y)))%*%t(colMeans(cbind(X,M,Y)) - colMeans(cbind(X,M,Y)))))) + (q+p+r)*log((2*pi))+log(det(sigma11)))
+  sing.vals <- svd(sigma11)$d
+  
+  log.lik <- -(1/2)*(sum(diag(inv11%*%(cov(cbind(X,M,Y))+(colMeans(cbind(X,M,Y)) -
+                    colMeans(cbind(X,M,Y)))%*%t(colMeans(cbind(X,M,Y)) -
+                    colMeans(cbind(X,M,Y)))))) + n*(q+p+r)*log((2*pi))+n*sum(log(sing.vals)))
   
   return(log.lik)
 }
