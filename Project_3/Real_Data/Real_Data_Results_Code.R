@@ -82,7 +82,7 @@ X <- XMY[,1:5]
 M <- XMY[,6:305]
 Y <- XMY[,306:605]
 
-# ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
 # cpg_coords <- ann450k[colnames(M), c("chr", "pos", "strand")]
 # 
 # hg19_granges <- GRanges(seqnames = cpg_coords$chr,
