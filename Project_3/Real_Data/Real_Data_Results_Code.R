@@ -82,19 +82,21 @@ X <- XMY[,1:5]
 M <- XMY[,6:305]
 Y <- XMY[,306:605]
 
-ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-cpg_coords <- ann450k[colnames(M), c("chr", "pos", "strand")]
+# ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# cpg_coords <- ann450k[colnames(M), c("chr", "pos", "strand")]
+# 
+# hg19_granges <- GRanges(seqnames = cpg_coords$chr,
+#                 ranges = IRanges(cpg_coords$pos, width = 1),
+#                 strand = cpg_coords$strand, probeID = rownames(cpg_coords))
+# 
+# chain <- rtracklayer::import.chain("hg19ToHg38.over.chain")
+# hg38_granges <- rtracklayer::liftOver(hg19_granges, chain)
 
-hg19_granges <- GRanges(seqnames = cpg_coords$chr,
-                ranges = IRanges(cpg_coords$pos, width = 1),
-                strand = cpg_coords$strand, probeID = rownames(cpg_coords))
-
-chain <- rtracklayer::import.chain("hg19ToHg38.over.chain")
-hg38_granges <- rtracklayer::liftOver(hg19_granges, chain)
-
+# mapping cpg sites to genes
 genes_map <- ann450k[colnames(M), c("UCSC_RefGene_Name", "UCSC_RefGene_Group")]
 genes_map$UCSC_RefGene_Name[optmod$M_estimates$M_final_pars$A[,1] != 0]
 
+# mapping RNA expression to genes
 ensmbl_ids <- gsub("\\..*", "", colnames(Y))
 gene_symbols <- AnnotationDbi::mapIds(org.Hs.eg.db::org.Hs.eg.db, keys = ensmbl_ids, column = "SYMBOL",
                 keytype = "ENSEMBL", multiVals = "list")
